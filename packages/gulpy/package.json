@@ -1,0 +1,17 @@
+{
+  "name": "gulpy",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0"
+  },
+  "main": "index.js",
+  "bin": {
+    "gulp": "./bin/gulp.js"
+  },
+  "dependencies": {
+    "gulp": "4.0.2",
+    "vinyl-fs": "3.0.3",
+    "glob-watcher": "5.0.3"
+  }
+}

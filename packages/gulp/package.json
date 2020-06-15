@@ -1,0 +1,61 @@
+{
+  "name": "gulp",
+  "version": "4.0.2",
+  "description": "The streaming build system.",
+  "homepage": "https://gulpjs.com",
+  "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/gulp",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0"
+  },
+  "main": "index.js",
+  "files": [
+    "LICENSE",
+    "index.js",
+    "bin"
+  ],
+  "bin": {
+    "gulp": "./bin/gulp.js"
+  },
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\"",
+    "coverage": "nyc yarn test",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "dependencies": {
+    "glob-watcher": "^5.0.3",
+    "gulp-cli": "^2.3.0",
+    "undertaker": "1.2.1",
+    "vinyl-fs": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/fs-extra": "^9.0.1",
+    "@types/lodash": "^4.14.155",
+    "@types/mocha": "^7.0.2",
+    "chai": "^4.2.0",
+    "coveralls": "^3.1.0",
+    "esm": "^3.2.25",
+    "fs-extra": "^9.0.1",
+    "mocha": "^8.0.1",
+    "nyc": "^15.1.0",
+    "ts-node": "8.10.2"
+  },
+  "keywords": [
+    "build",
+    "stream",
+    "system",
+    "make",
+    "tool",
+    "asset",
+    "pipeline",
+    "series",
+    "parallel",
+    "streaming"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "undertaker-registry",
+  "version": "1.0.1",
+  "description": "Default registry in gulp 4.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/undertaker-registry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0"
+  },
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "ts-node": "^8.10.2",
+    "mocha": "^8.0.1"
+  },
+  "keywords": [
+    "registry",
+    "tasks",
+    "undertaker",
+    "gulp"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "undertaker-common-tasks",
+  "version": "1.0.1",
+  "description": "Proof-of-concept custom registry that pre-defines tasks",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [],
+  "repository": "gulpjs/undertaker-common-tasks",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0"
+  },
+  "main": "index.ts",
+  "scripts": {},
+  "dependencies": {
+    "gulplog": "^1.0.0",
+    "undertaker-registry": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.6"
+  },
+  "keywords": [
+    "common tasks",
+    "custom registry",
+    "registry",
+    "tasks",
+    "undertaker",
+    "gulp"
+  ]
+}

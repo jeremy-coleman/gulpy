@@ -1,0 +1,63 @@
+{
+  "name": "undertaker",
+  "version": "1.2.1",
+  "description": "Task registry that allows composition through series/parallel methods.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>",
+    "Damien Lebrun <dinoboff@hotmail.com>"
+  ],
+  "repository": "gulpjs/undertaker",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0"
+  },
+  "main": "src/index.ts",
+  "files": [
+    "LICENSE",
+    "index.js",
+    "lib"
+  ],
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\"",
+    "cover": "istanbul cover _mocha --report lcovonly"
+  },
+  "dependencies": {
+    "bach": "^1.2.0",
+    "lodash-es": "^4.17.15",
+    "last-run": "1.1.1",
+    "undertaker-registry": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/lodash-es": "^4.14.155",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^14.0.13",
+    "@types/through2": "^2.0.36",
+    "@types/undertaker-registry": "^1.0.1",
+    "@types/vinyl-fs": "^2.4.11",
+    "async-once": "^1.0.1",
+    "chai": "^4.2.0",
+    "del": "^5.1.0",
+    "mocha": "^8.0.1",
+    "through2": "^3.0.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.5",
+    "undertaker-common-tasks": "^1.0.1",
+    "undertaker-task-metadata": "^1.0.0",
+    "vinyl-fs": "^3.0.3"
+  },
+  "keywords": [
+    "registry",
+    "runner",
+    "task"
+  ],
+  "prettier": {
+    "arrowParens": "avoid",
+    "tabWidth": 2,
+    "printWidth": 90,
+    "semi": false,
+    "singleQuote": false,
+    "trailingComma": "es5"
+  }
+}
