@@ -1,7 +1,7 @@
 import domain from "domain"
 import eos from "end-of-stream"
 import p from "process-nextick-args"
-import { once } from "lodash-es"
+import { once, isFunction } from "lodash-es"
 import exhaust from "stream-exhaust"
 
 import type { ChildProcess } from "child_process"
@@ -109,20 +109,20 @@ export function asyncDone<R = any>(fn: AsyncTask<R>, cb: Callback<R>): void {
       onSuccess(onNext.state)
     }
 
-    if (result && typeof result.on === "function") {
+    if (result && isFunction(result.on)) {
       // Assume node stream
       d.add(result)
       eos(exhaust(result), eosConfig, done)
       return
     }
 
-    if (result && typeof result.subscribe === "function") {
+    if (result && isFunction(result.subscribe)) {
       // Assume RxJS observable
       result.subscribe(onNext, onError, onCompleted)
       return
     }
 
-    if (result && typeof result.then === "function") {
+    if (result && isFunction(result.then)) {
       // Assume promise
       result.then(onSuccess, onError)
       return

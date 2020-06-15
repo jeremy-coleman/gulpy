@@ -1,15 +1,15 @@
-import { once, noop } from "lodash-es"
+import { once, noop, isFunction } from "lodash-es"
 import * as helpers from "./helpers"
 
 export function mapSeries(values, iterator, extensions, done) {
   // Allow for extensions to not be specified
-  if (typeof extensions === "function") {
+  if (isFunction(extensions)) {
     done = extensions
     extensions = {}
   }
 
   // Handle no callback case
-  if (typeof done !== "function") {
+  if (!isFunction(done)) {
     done = noop
   }
 

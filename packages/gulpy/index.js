@@ -71,18 +71,18 @@ function asyncDone(fn, cb) {
       onSuccess(onNext.state)
     }
 
-    if (result && typeof result.on === "function") {
+    if (result && lodash.isFunction(result.on)) {
       d.add(result)
       eos(exhaust(result), eosConfig, done)
       return
     }
 
-    if (result && typeof result.subscribe === "function") {
+    if (result && lodash.isFunction(result.subscribe)) {
       result.subscribe(onNext, onError, onCompleted)
       return
     }
 
-    if (result && typeof result.then === "function") {
+    if (result && lodash.isFunction(result.then)) {
       result.then(onSuccess, onError)
       return
     }
@@ -120,12 +120,12 @@ function initializeResults(values) {
 }
 
 function map(values, iterator, extensions, done) {
-  if (typeof extensions === "function") {
+  if (lodash.isFunction(extensions)) {
     done = extensions
     extensions = {}
   }
 
-  if (typeof done !== "function") {
+  if (!lodash.isFunction(done)) {
     done = lodash.noop
   }
 
@@ -169,12 +169,12 @@ function map(values, iterator, extensions, done) {
 }
 
 function mapSeries(values, iterator, extensions, done) {
-  if (typeof extensions === "function") {
+  if (lodash.isFunction(extensions)) {
     done = extensions
     extensions = {}
   }
 
-  if (typeof done !== "function") {
+  if (!lodash.isFunction(done)) {
     done = lodash.noop
   }
 
