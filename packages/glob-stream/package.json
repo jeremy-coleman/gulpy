@@ -1,0 +1,42 @@
+{
+  "name": "glob-stream",
+  "version": "6.1.0",
+  "description": "A Readable Stream interface over node-glob.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/glob-stream",
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "lint": "eslint . && jscs index.js readable.js test/",
+    "pretest": "npm run lint",
+    "test": "mocha --async-only",
+    "cover": "istanbul cover _mocha --report lcovonly",
+    "coveralls": "npm run cover && istanbul-coveralls"
+  },
+  "dependencies": {
+    "glob": "^7.1.6",
+    "glob-parent": "^5.1.1",
+    "is-negated-glob": "^1.0.0",
+    "ordered-read-streams": "^1.0.1",
+    "pumpify": "^2.0.1",
+    "readable-stream": "^3.6.0",
+    "remove-trailing-separator": "^1.1.0",
+    "to-absolute-glob": "^2.0.2",
+    "unique-stream": "^2.3.1"
+  },
+  "devDependencies": {
+    "mocha": "^8.0.1"
+  },
+  "keywords": [
+    "glob",
+    "stream",
+    "gulp",
+    "readable",
+    "fs",
+    "files"
+  ]
+}

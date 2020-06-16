@@ -1,7 +1,7 @@
 import expect from "expect"
 import * as fs from "fs"
 import * as path from "path"
-import through from "through2"
+import * as through from "through2"
 import pumpify from "pumpify"
 import { asyncDone } from "../"
 

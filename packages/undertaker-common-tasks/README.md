@@ -8,6 +8,8 @@
 
 Last upstream commit: [b52df1e on 28 Dec 2017](https://github.com/gulpjs/undertaker-common-tasks/commit/b52df1ead9e7d93fada92d2b5c545b3116c48fb3).
 
+This is a devDependency override.
+
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Gitter chat][gitter-image]][gitter-url]
 
 Proof-of-concept custom registry that pre-defines tasks.

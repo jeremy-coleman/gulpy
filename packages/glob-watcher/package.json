@@ -1,0 +1,32 @@
+{
+  "name": "glob-watcher",
+  "version": "5.0.3",
+  "description": "Watch globs and execute a function upon change, with intelligent defaults for debouncing and queueing.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [],
+  "repository": "gulpjs/glob-watcher",
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha --async-only"
+  },
+  "dependencies": {
+    "anymatch": "^3.1.1",
+    "async-done": "^1.3.2",
+    "chokidar": "^3.4.0",
+    "is-negated-glob": "^1.0.0",
+    "just-debounce": "^1.0.0",
+    "object.defaults": "^1.1.0"
+  },
+  "devDependencies": {
+    "mocha": "^8.0.1"
+  },
+  "keywords": [
+    "watch",
+    "glob",
+    "async",
+    "queue",
+    "debounce",
+    "callback"
+  ]
+}

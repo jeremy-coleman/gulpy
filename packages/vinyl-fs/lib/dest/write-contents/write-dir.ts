@@ -1,9 +1,8 @@
-import * as fs from "fs"
-import mkdirp from "fs-mkdirp-stream/mkdirp"
+import * as fs from "fs-extra"
 import * as fo from "../../file-operations"
 
 function writeDir(file, optResolver, onWritten) {
-  mkdirp(file.path, file.stat.mode, onMkdirp)
+  ;(fs as any).mkdirp(file.path, file.stat.mode).then(onMkdirp)
 
   function onMkdirp(mkdirpErr) {
     if (mkdirpErr) {

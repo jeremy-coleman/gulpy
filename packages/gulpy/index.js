@@ -9,16 +9,21 @@ var events = require("events")
 var lodash = require("lodash")
 var domain = require("domain")
 var stream = require("stream")
-var gs = _interopDefault(require("glob-stream"))
-var pumpify = _interopDefault(require("pumpify"))
+var Combine = _interopDefault(require("ordered-read-streams"))
+var unique = _interopDefault(require("unique-stream"))
+var pump = _interopDefault(require("pump"))
+var Duplexify = _interopDefault(require("duplexify"))
+var isNegatedGlob = _interopDefault(require("is-negated-glob"))
+var glob = _interopDefault(require("glob"))
+var globParent = _interopDefault(require("glob-parent"))
+var toAbsoluteGlob = _interopDefault(require("to-absolute-glob"))
+var removeTrailingSep = _interopDefault(require("remove-trailing-separator"))
 var toThrough = _interopDefault(require("to-through"))
 var isValidGlob = _interopDefault(require("is-valid-glob"))
 var createResolver = _interopDefault(require("resolve-options"))
-var through = _interopDefault(require("through2"))
-var path = require("path")
 var util = require("util")
+var path = require("path")
 var cloneable = _interopDefault(require("cloneable-readable"))
-var removeTrailingSep = _interopDefault(require("remove-trailing-separator"))
 var sourcemap = _interopDefault(require("vinyl-sourcemap"))
 var fs = require("fs")
 var removeBomStream = _interopDefault(require("remove-bom-stream"))
@@ -27,10 +32,12 @@ var iconv = _interopDefault(require("iconv-lite"))
 var removeBomBuffer = _interopDefault(require("remove-bom-buffer"))
 var valueOrFunction = require("value-or-function")
 var lead = _interopDefault(require("lead"))
-var mkdirpStream = _interopDefault(require("fs-mkdirp-stream"))
-var mkdirp = _interopDefault(require("fs-mkdirp-stream/mkdirp"))
+var fs$1 = require("fs-extra")
 var os = require("os")
-var watch = _interopDefault(require("glob-watcher"))
+var chokidar = _interopDefault(require("chokidar"))
+var debounce = _interopDefault(require("just-debounce"))
+var defaults = _interopDefault(require("object.defaults/immutable"))
+var anymatch = _interopDefault(require("anymatch"))
 
 function isRequest(stream) {
   return stream.setHeader && typeof stream.abort === "function"
@@ -887,6 +894,226 @@ class Undertaker extends events.EventEmitter {
   }
 }
 
+const toArray = args => {
+  if (!args.length) return []
+  return Array.isArray(args[0]) ? args[0] : Array.prototype.slice.call(args)
+}
+
+const define = opts => {
+  class Pumpify extends Duplexify {
+    constructor(...args) {
+      const streams = toArray(args)
+      super(null, null, opts)
+      if (streams.length) this.setPipeline(streams)
+    }
+
+    setPipeline(...args) {
+      const streams = toArray(args)
+      const self = this
+      let ended = false
+      let w = streams[0]
+      let r = streams[streams.length - 1]
+      r = r.readable ? r : null
+      w = w.writable ? w : null
+
+      const onclose = () => {
+        streams[0].emit("error", new Error("stream was destroyed"))
+      }
+
+      this.on("close", onclose)
+      this.on("prefinish", () => {
+        if (!ended) self.cork()
+      })
+      pump(streams, err => {
+        self.removeListener("close", onclose)
+        if (err) return self.destroy(err.message === "premature close" ? null : err)
+        ended = true
+        if (self._autoDestroy === false) self._autoDestroy = true
+        self.uncork()
+      })
+      if (this.destroyed) return onclose()
+      this.setWritable(w)
+      this.setReadable(r)
+    }
+  }
+
+  return (...args) => new Pumpify(...args)
+}
+
+var pumpify = define({
+  autoDestroy: false,
+  destroy: false,
+})
+const obj = define({
+  autoDestroy: false,
+  destroy: false,
+  objectMode: true,
+  highWaterMark: 16,
+})
+
+const globErrMessage1 = "File not found with singular glob: "
+const globErrMessage2 = " (if this was purposeful, use `allowEmpty` option)"
+
+function getBasePath(ourGlob, opt) {
+  return globParent(toAbsoluteGlob(ourGlob, opt))
+}
+
+function globIsSingular({ minimatch }) {
+  const globSet = minimatch.set
+
+  if (globSet.length !== 1) {
+    return false
+  }
+
+  return globSet[0].every(lodash.isString)
+}
+
+class GlobStream extends stream.Readable {
+  constructor(ourGlob, negatives, opt) {
+    const ourOpt = Object.assign({}, opt)
+    super({
+      objectMode: true,
+      highWaterMark: ourOpt.highWaterMark || 16,
+    })
+    delete ourOpt.highWaterMark
+    const self = this
+
+    function resolveNegatives(negative) {
+      return toAbsoluteGlob(negative, ourOpt)
+    }
+
+    const ourNegatives = negatives.map(resolveNegatives)
+    ourOpt.ignore = ourNegatives
+    const cwd = ourOpt.cwd
+    const allowEmpty = ourOpt.allowEmpty || false
+    const basePath = ourOpt.base || getBasePath(ourGlob, ourOpt)
+    ourGlob = toAbsoluteGlob(ourGlob, ourOpt)
+    delete ourOpt.root
+    const globber = new glob.Glob(ourGlob, ourOpt)
+    this._globber = globber
+    let found = false
+    globber.on("match", filepath => {
+      found = true
+      const obj = {
+        cwd,
+        base: basePath,
+        path: removeTrailingSep(filepath),
+      }
+
+      if (!self.push(obj)) {
+        globber.pause()
+      }
+    })
+    globber.once("end", () => {
+      if (allowEmpty !== true && !found && globIsSingular(globber)) {
+        const err = new Error(globErrMessage1 + ourGlob + globErrMessage2)
+        return self.destroy(err)
+      }
+
+      self.push(null)
+    })
+
+    function onError(err) {
+      self.destroy(err)
+    }
+
+    globber.once("error", onError)
+  }
+
+  _read() {
+    this._globber.resume()
+  }
+
+  destroy(err) {
+    const self = this
+
+    this._globber.abort()
+
+    process.nextTick(() => {
+      if (err) {
+        self.emit("error", err)
+      }
+
+      self.emit("close")
+    })
+  }
+}
+
+function globStream(globs, opt) {
+  if (!opt) {
+    opt = {}
+  }
+
+  const ourOpt = Object.assign({}, opt)
+  let ignore = ourOpt.ignore
+  ourOpt.cwd = typeof ourOpt.cwd === "string" ? ourOpt.cwd : process.cwd()
+  ourOpt.dot = typeof ourOpt.dot === "boolean" ? ourOpt.dot : false
+  ourOpt.silent = typeof ourOpt.silent === "boolean" ? ourOpt.silent : true
+  ourOpt.cwdbase = typeof ourOpt.cwdbase === "boolean" ? ourOpt.cwdbase : false
+  ourOpt.uniqueBy =
+    typeof ourOpt.uniqueBy === "string" || typeof ourOpt.uniqueBy === "function"
+      ? ourOpt.uniqueBy
+      : "path"
+
+  if (ourOpt.cwdbase) {
+    ourOpt.base = ourOpt.cwd
+  }
+
+  if (typeof ignore === "string") {
+    ignore = [ignore]
+  }
+
+  if (!Array.isArray(ignore)) {
+    ignore = []
+  }
+
+  if (!Array.isArray(globs)) {
+    globs = [globs]
+  }
+
+  const positives = []
+  const negatives = []
+  globs.forEach(sortGlobs)
+
+  function sortGlobs(globString, index) {
+    if (typeof globString !== "string") {
+      throw new Error(`Invalid glob at index ${index}`)
+    }
+
+    const glob = isNegatedGlob(globString)
+    const globArray = glob.negated ? negatives : positives
+    globArray.push({
+      index,
+      glob: glob.pattern,
+    })
+  }
+
+  if (positives.length === 0) {
+    throw new Error("Missing positive glob")
+  }
+
+  const streams = positives.map(streamFromPositive)
+  const aggregate = new Combine(streams)
+  const uniqueStream = unique(ourOpt.uniqueBy)
+  return pumpify.obj(aggregate, uniqueStream)
+
+  function streamFromPositive({ index, glob }) {
+    const negativeGlobs = negatives
+      .filter(indexGreaterThan(index))
+      .map(toGlob)
+      .concat(ignore)
+    return new GlobStream(glob, negativeGlobs, ourOpt)
+  }
+}
+
+function indexGreaterThan(index) {
+  return obj => obj.index > index
+}
+
+function toGlob({ glob }) {
+  return glob
+}
+
 const MASK_MODE = parseInt("7777", 8)
 const DEFAULT_FILE_MODE = parseInt("0666", 8)
 const DEFAULT_ENCODING = "utf8"
@@ -921,6 +1148,50 @@ const config = {
   },
 }
 
+class DestroyableTransform extends stream.Transform {
+  constructor(...args) {
+    super(...args)
+    this._destroyed = false
+  }
+
+  destroy(err) {
+    if (this._destroyed) return
+    this._destroyed = true
+    process.nextTick(() => {
+      if (err) this.emit("error", err)
+      this.emit("close")
+    })
+  }
+}
+
+const noop = (chunk, _enc, callback) => {
+  callback(null, chunk)
+}
+
+function through2(construct) {
+  const fn = (options, transform, flush) => {
+    if (lodash.isFunction(options)) {
+      flush = transform
+      transform = options
+      options = {}
+    }
+
+    if (!lodash.isFunction(transform)) transform = noop
+    if (!lodash.isFunction(flush)) flush = undefined
+    return construct(options, transform, flush)
+  }
+
+  return fn
+}
+
+const main = through2((options, transform, flush) => {
+  const t2 = new DestroyableTransform(options)
+  t2._transform = transform
+  if (flush) t2._flush = flush
+  return t2
+})
+module.exports = exports = main
+
 function prepareRead(optResolver) {
   function normalize(file, enc, callback) {
     const since = optResolver.resolve("since", file)
@@ -932,7 +1203,7 @@ function prepareRead(optResolver) {
     return callback(null, file)
   }
 
-  return through.obj(normalize)
+  return main.obj(normalize)
 }
 
 function replaceExt(nPath, ext) {
@@ -1311,7 +1582,7 @@ function wrapVinyl() {
     callback(null, file)
   }
 
-  return through.obj(wrapFile)
+  return main.obj(wrapFile)
 }
 
 function sourcemapStream(optResolver) {
@@ -1333,7 +1604,7 @@ function sourcemapStream(optResolver) {
     }
   }
 
-  return through.obj(addSourcemap)
+  return main.obj(addSourcemap)
 }
 
 function readDir(file, optResolver, onRead) {
@@ -1359,7 +1630,7 @@ class Codec {
 
   encodeStream() {
     const encoder = getEncoder(this.codec)
-    return through(
+    return main(
       {
         decodeStrings: false,
       },
@@ -1393,7 +1664,7 @@ class Codec {
 
   decodeStream() {
     const decoder = getDecoder(this.codec)
-    return through(
+    return main(
       {
         encoding: DEFAULT_ENCODING,
       },
@@ -1557,7 +1828,7 @@ function readContents(optResolver) {
     }
   }
 
-  return through.obj(readFile)
+  return main.obj(readFile)
 }
 
 const APPEND_MODE_REGEXP = /a/
@@ -2019,7 +2290,7 @@ function resolveSymlinks(optResolver) {
     }
   }
 
-  return through.obj(resolveFile)
+  return main.obj(resolveFile)
 }
 
 function src(glob, opt) {
@@ -2030,7 +2301,7 @@ function src(glob, opt) {
   }
 
   const streams = [
-    gs(glob, opt),
+    globStream(glob, opt),
     wrapVinyl(),
     resolveSymlinks(optResolver),
     prepareRead(optResolver),
@@ -2039,6 +2310,106 @@ function src(glob, opt) {
   ]
   const outputStream = pumpify.obj(streams)
   return toThrough(outputStream)
+}
+
+const MASK_MODE$1 = parseInt("7777", 8)
+
+function mkdirp(dirpath, mode, callback) {
+  if (typeof mode === "function") {
+    callback = mode
+    mode = undefined
+  }
+
+  if (typeof mode === "string") {
+    mode = parseInt(mode, 8)
+  }
+
+  dirpath = path.resolve(dirpath)
+  fs.mkdir(dirpath, mode, onMkdir)
+
+  function onMkdir(mkdirErr) {
+    if (!mkdirErr) {
+      return fs.stat(dirpath, onStat)
+    }
+
+    switch (mkdirErr.code) {
+      case "ENOENT": {
+        return mkdirp(path.dirname(dirpath), onRecurse)
+      }
+
+      case "EEXIST": {
+        return fs.stat(dirpath, onStat)
+      }
+
+      default: {
+        return callback(mkdirErr)
+      }
+    }
+
+    function onStat(statErr, stats) {
+      if (statErr) {
+        return callback(statErr)
+      }
+
+      if (!stats.isDirectory()) {
+        return callback(mkdirErr)
+      }
+
+      if (!mode) {
+        return callback()
+      }
+
+      if ((stats.mode & MASK_MODE$1) === mode) {
+        return callback()
+      }
+
+      fs.chmod(dirpath, mode, callback)
+    }
+  }
+
+  function onRecurse(recurseErr) {
+    if (recurseErr) {
+      return callback(recurseErr)
+    }
+
+    mkdirp(dirpath, mode, callback)
+  }
+}
+
+function toFunction(dirpath) {
+  function stringResolver(chunk, callback) {
+    callback(null, dirpath)
+  }
+
+  return stringResolver
+}
+
+function mkdirpStream(resolver) {
+  if (lodash.isString(resolver)) {
+    resolver = toFunction(resolver)
+  }
+
+  return new stream.Transform({
+    transform(chunk, callback) {
+      const onDirpath = (dirpathErr, dirpath, mode) => {
+        if (dirpathErr) {
+          return this.destroy(dirpathErr)
+        }
+
+        mkdirp(dirpath, mode, onMkdirp)
+      }
+
+      const onMkdirp = mkdirpErr => {
+        if (mkdirpErr) {
+          return this.destroy(mkdirpErr)
+        }
+
+        this.push(chunk)
+      }
+
+      resolver(chunk, onDirpath)
+    },
+  })
 }
 
 const config$1 = {
@@ -2118,7 +2489,7 @@ function prepareWrite(folderResolver, optResolver) {
     cb(null, file)
   }
 
-  return through.obj(normalize)
+  return main.obj(normalize)
 }
 
 function sourcemapStream$1(optResolver) {
@@ -2148,18 +2519,18 @@ function sourcemapStream$1(optResolver) {
     }
   }
 
-  return through.obj(saveSourcemap)
+  return main.obj(saveSourcemap)
 }
 
 function writeDir(file, optResolver, onWritten) {
-  mkdirp(file.path, file.stat.mode, onMkdirp)
+  fs$1.mkdirp(file.path, file.stat.mode).then(onMkdirp)
 
   function onMkdirp(mkdirpErr) {
     if (mkdirpErr) {
       return onWritten(mkdirpErr)
     }
 
-    fs.open(file.path, "r", onOpen)
+    fs$1.open(file.path, "r", onOpen)
   }
 
   function onOpen(openErr, fd) {
@@ -2390,7 +2761,7 @@ function writeContents(optResolver) {
     }
   }
 
-  return through.obj(writeFile)
+  return main.obj(writeFile)
 }
 
 const folderConfig = {
@@ -2400,7 +2771,7 @@ const folderConfig = {
 }
 function dest(outFolder, opt) {
   if (!outFolder) {
-    throw new Error(
+    throw Error(
       "Invalid dest() folder argument. Please specify a non-empty string or a function."
     )
   }
@@ -2415,7 +2786,7 @@ function dest(outFolder, opt) {
     callback(null, file.dirname, dirMode)
   }
 
-  const saveStream = pumpify.obj(
+  const saveStream = obj(
     prepareWrite(folderResolver, optResolver),
     sourcemapStream$1(optResolver),
     mkdirpStream.obj(dirpath),
@@ -2478,7 +2849,7 @@ function prepareSymlink(folderResolver, optResolver) {
     cb(null, file)
   }
 
-  return through.obj(normalize)
+  return main.obj(normalize)
 }
 
 const isWindows$1 = os.platform() === "win32"
@@ -2537,7 +2908,7 @@ function linkStream(optResolver) {
     }
   }
 
-  return through.obj(linkFile)
+  return main.obj(linkFile)
 }
 
 const folderConfig$1 = {
@@ -2568,6 +2939,126 @@ function symlink$1(outFolder, opt) {
     linkStream(optResolver)
   )
   return lead(stream)
+}
+
+const defaultOpts = {
+  delay: 200,
+  events: ["add", "change", "unlink"],
+  ignored: [],
+  ignoreInitial: true,
+  queue: true,
+}
+
+function listenerCount(ee, evtName) {
+  if (typeof ee.listenerCount === "function") {
+    return ee.listenerCount(evtName)
+  }
+
+  return ee.listeners(evtName).length
+}
+
+function hasErrorListener(ee) {
+  return listenerCount(ee, "error") !== 0
+}
+
+function exists(val) {
+  return val != null
+}
+
+function watch(glob, options, cb) {
+  if (typeof options === "function") {
+    cb = options
+    options = {}
+  }
+
+  const opt = defaults(options, defaultOpts)
+
+  if (!Array.isArray(opt.events)) {
+    opt.events = [opt.events]
+  }
+
+  if (Array.isArray(glob)) {
+    glob = glob.slice()
+  } else {
+    glob = [glob]
+  }
+
+  let queued = false
+  let running = false
+  const positives = new Array(glob.length)
+  const negatives = new Array(glob.length)
+  glob.reverse().forEach(sortGlobs)
+
+  function sortGlobs(globString, index) {
+    const result = isNegatedGlob(globString)
+
+    if (result.negated) {
+      negatives[index] = result.pattern
+    } else {
+      positives[index] = result.pattern
+    }
+  }
+
+  function shouldBeIgnored(path) {
+    const positiveMatch = anymatch(positives, path, true)
+    const negativeMatch = anymatch(negatives, path, true)
+
+    if (negativeMatch === -1) {
+      return false
+    }
+
+    return negativeMatch < positiveMatch
+  }
+
+  const toWatch = positives.filter(exists)
+
+  if (negatives.some(exists)) {
+    opt.ignored = [].concat(opt.ignored, shouldBeIgnored)
+  }
+
+  const watcher = chokidar.watch(toWatch, opt)
+
+  function runComplete(err) {
+    running = false
+
+    if (err && hasErrorListener(watcher)) {
+      watcher.emit("error", err)
+    }
+
+    if (queued) {
+      queued = false
+      onChange()
+    }
+  }
+
+  function onChange() {
+    if (running) {
+      if (opt.queue) {
+        queued = true
+      }
+
+      return
+    }
+
+    running = true
+    asyncDone(cb, runComplete)
+  }
+
+  let fn
+
+  if (typeof cb === "function") {
+    fn = debounce(onChange, opt.delay)
+  }
+
+  function watchEvent(eventName) {
+    watcher.on(eventName, fn)
+  }
+
+  if (fn) {
+    opt.events.forEach(watchEvent)
+  }
+
+  return watcher
 }
 
 class Gulp extends Undertaker {

@@ -1,5 +1,5 @@
 import lead from "lead"
-import pumpify from "pumpify"
+import * as pumpify from "pumpify"
 import mkdirpStream from "fs-mkdirp-stream"
 import createResolver from "resolve-options"
 import config from "./options"
@@ -15,9 +15,8 @@ const folderConfig = {
 
 export function dest(outFolder, opt) {
   if (!outFolder) {
-    throw new Error(
-      "Invalid dest() folder argument." +
-        " Please specify a non-empty string or a function."
+    throw Error(
+      "Invalid dest() folder argument. Please specify a non-empty string or a function."
     )
   }
 
