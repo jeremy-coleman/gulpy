@@ -1,15 +1,13 @@
 import * as path from "path"
 import * as fs from "fs"
-import miss from "mississippi"
-import expect from "expect"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import isWindows from "./utils/is-windows"
 import testStreams from "./utils/test-streams"
 import testConstants from "./utils/test-constants"
-
-const pipe = miss.pipe
-const concat = miss.concat
+import concat from "concat-stream"
+import pipe from "pump"
 
 const count = testStreams.count
 
@@ -66,7 +64,7 @@ describe("integrations", () => {
 
       expect(symlinkResult).toEqual(inputDirpath)
       expect(destResult).toEqual(inputDirpath)
-      expect(files[0].isSymbolic()).toBe(true)
+      expect(files[0].isSymbolic()).to.be.true
       expect(files[0].symlink).toEqual(inputDirpath)
     }
 
@@ -95,7 +93,7 @@ describe("integrations", () => {
 
       expect(symlinkResult).toEqual(expected)
       expect(destResult).toEqual(expected)
-      expect(files[0].isSymbolic()).toBe(true)
+      expect(files[0].isSymbolic()).to.be.true
       expect(files[0].symlink).toEqual(inputDirpath)
     }
 
@@ -124,7 +122,7 @@ describe("integrations", () => {
       const destResult = fs.readlinkSync(outputDirpathSymlink)
 
       expect(destResult).toEqual(inputDirpath)
-      expect(files[0].isSymbolic()).toEqual(true)
+      expect(files[0].isSymbolic()).to.be.true
       expect(files[0].symlink).toEqual(inputDirpath)
     }
 
@@ -154,7 +152,7 @@ describe("integrations", () => {
       const destResult = fs.readlinkSync(outputDirpathSymlink)
 
       expect(destResult).toEqual(expected)
-      expect(files[0].isSymbolic()).toEqual(true)
+      expect(files[0].isSymbolic()).to.be.true
       expect(files[0].symlink).toEqual(inputDirpath)
     }
 
@@ -184,7 +182,7 @@ describe("integrations", () => {
       const destResult = fs.readlinkSync(outputDirpathSymlink)
 
       expect(destResult).toEqual(expected)
-      expect(files[0].isSymbolic()).toEqual(true)
+      expect(files[0].isSymbolic()).to.be.true
       expect(files[0].symlink).toEqual(inputDirpath)
     }
 

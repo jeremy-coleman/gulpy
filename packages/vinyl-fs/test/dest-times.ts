@@ -1,15 +1,14 @@
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import isWindows from "./utils/is-windows"
 import testConstants from "./utils/test-constants"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const inputBase = testConstants.inputBase
 const outputBase = testConstants.outputBase
@@ -45,7 +44,7 @@ describe(".dest() with custom times", () => {
     function assert() {
       const stats = fs.lstatSync(outputPath)
 
-      expect(futimesSpy.calls.length).toEqual(0)
+      expect(futimesSpy.calls.length).to.equal(0)
       expect(stats.atime.getTime()).toBeGreaterThan(earlier)
       expect(stats.mtime.getTime()).toBeGreaterThan(earlier)
     }
@@ -77,7 +76,7 @@ describe(".dest() with custom times", () => {
     })
 
     function assert() {
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(futimesSpy.calls.length).to.equal(1)
 
       // Compare args instead of fs.lstats(), since mtime may be drifted in x86 Node.js
       const mtimeSpy = futimesSpy.calls[0].arguments[2]
@@ -115,7 +114,7 @@ describe(".dest() with custom times", () => {
     function assert() {
       const stats = fs.lstatSync(outputPath)
 
-      expect(futimesSpy.calls.length).toEqual(0)
+      expect(futimesSpy.calls.length).to.equal(0)
       expect(stats.mtime.getTime()).toBeGreaterThan(earlier)
     }
 
@@ -148,7 +147,7 @@ describe(".dest() with custom times", () => {
     })
 
     function assert() {
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(futimesSpy.calls.length).to.equal(1)
 
       const mtimeSpy = futimesSpy.calls[0].arguments[2]
 
@@ -184,7 +183,7 @@ describe(".dest() with custom times", () => {
     })
 
     function assert() {
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(futimesSpy.calls.length).to.equal(1)
 
       const atimeSpy = futimesSpy.calls[0].arguments[1]
       const mtimeSpy = futimesSpy.calls[0].arguments[2]

@@ -1,5 +1,6 @@
 import through from "through2"
 import sourcemap from "vinyl-sourcemap"
+import { isString } from "lodash"
 
 function sourcemapStream(optResolver) {
   function saveSourcemap(file, enc, callback) {
@@ -11,7 +12,7 @@ function sourcemapStream(optResolver) {
       return callback(null, file)
     }
 
-    const srcMapLocation = typeof srcMap === "string" ? srcMap : undefined
+    const srcMapLocation = isString(srcMap) ? srcMap : undefined
 
     sourcemap.write(file, srcMapLocation, onWrite)
 

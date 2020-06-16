@@ -1,5 +1,5 @@
 import * as domain from "domain"
-import expect from "expect"
+import { expect } from "chai"
 import when from "when"
 import { asyncDone } from "../"
 
@@ -18,7 +18,7 @@ function rejectNoError() {
 describe("promises", () => {
   it("should handle a resolved promise", done => {
     asyncDone(success, (err, result) => {
-      expect(result).toEqual(2)
+      expect(result).to.equal(2)
       done(err)
     })
   })
@@ -32,7 +32,7 @@ describe("promises", () => {
 
   it("properly errors when rejected without an error", done => {
     asyncDone(rejectNoError, err => {
-      expect(err).toExist()
+      expect(err).to.exist
       expect(err).toBeAn(Error)
       done()
     })
@@ -41,7 +41,7 @@ describe("promises", () => {
   it("does not swallow thrown errors in callback", done => {
     const d = domain.create()
     d.once("error", err => {
-      expect(err).toExist()
+      expect(err).to.exist
       expect(err.message).toContain("Boom")
       done()
     })

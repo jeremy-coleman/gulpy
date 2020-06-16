@@ -1,4 +1,4 @@
-import expect from "expect"
+import { expect } from "chai"
 import { asyncDone } from "../"
 
 function success(cb) {
@@ -16,7 +16,7 @@ function neverDone() {
 describe("callbacks", () => {
   it("should handle a successful callback", done => {
     asyncDone(success, (err, result) => {
-      expect(result).toEqual(2)
+      expect(result).to.equal(2)
       done(err)
     })
   })

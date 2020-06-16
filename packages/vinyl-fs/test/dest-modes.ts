@@ -1,7 +1,6 @@
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import statMode from "./utils/stat-mode"
@@ -11,9 +10,9 @@ import applyUmask from "./utils/apply-umask"
 import always from "./utils/always"
 import testConstants from "./utils/test-constants"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const inputBase = testConstants.inputBase
 const outputBase = testConstants.outputBase
@@ -324,7 +323,7 @@ describe(".dest() with custom modes", () => {
     })
 
     function assert() {
-      expect(fchmodSpy.calls.length).toEqual(0)
+      expect(fchmodSpy.calls.length).to.equal(0)
       expect(statMode(outputPath)).toEqual(expectedMode)
     }
 
@@ -355,7 +354,7 @@ describe(".dest() with custom modes", () => {
     })
 
     function assert() {
-      expect(fchmodSpy.calls.length).toEqual(1)
+      expect(fchmodSpy.calls.length).to.equal(1)
     }
 
     fs.mkdirSync(outputBase)
@@ -388,8 +387,8 @@ describe(".dest() with custom modes", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
-      expect(fchmodSpy.calls.length).toEqual(1)
+      expect(err).to.exist
+      expect(fchmodSpy.calls.length).to.equal(1)
       done()
     }
 

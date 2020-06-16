@@ -1,9 +1,8 @@
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import stream from "../readable"
 
 // Need to wrap this to cause node-glob to emit an error
-import fs from "fs"
+import * as fs from "fs"
 
 function deWindows(p) {
   return p.replace(/\\/g, "/")
@@ -31,7 +30,7 @@ describe("readable stream", () => {
     try {
       gs.write({})
     } catch (err) {
-      expect(err).toExist()
+      expect(err).to.exist
       done()
     }
   })
@@ -48,7 +47,7 @@ describe("readable stream", () => {
     gs.push(stub)
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(2)
+      expect(pathObjs.length).to.equal(2)
       expect(pathObjs[0]).toEqual(stub)
     }
 
@@ -111,8 +110,8 @@ describe("readable stream", () => {
     }
 
     function assert({ length }) {
-      expect(length).toEqual(3)
-      expect(spy.calls.length).toEqual(2)
+      expect(length).to.equal(3)
+      expect(spy.calls.length).to.equal(2)
       spy.restore()
     }
 

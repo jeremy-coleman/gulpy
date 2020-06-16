@@ -1,6 +1,6 @@
 import { Transform } from "stream"
 import mkdirp from "./mkdirp"
-import { isString } from "lodash-es"
+import { isString } from "lodash"
 
 function toFunction(dirpath) {
   function stringResolver(chunk, callback) {

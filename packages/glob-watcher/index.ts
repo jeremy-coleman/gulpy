@@ -4,6 +4,7 @@ import { asyncDone } from "async-done"
 import defaults from "object.defaults/immutable"
 import isNegatedGlob from "is-negated-glob"
 import anymatch from "anymatch"
+import { isFunction } from "lodash"
 
 const defaultOpts = {
   delay: 200,
@@ -14,7 +15,7 @@ const defaultOpts = {
 }
 
 function listenerCount(ee, evtName) {
-  if (typeof ee.listenerCount === "function") {
+  if (isFunction(ee.listenerCount)) {
     return ee.listenerCount(evtName)
   }
 
@@ -30,7 +31,7 @@ function exists(val) {
 }
 
 function watch(glob, options, cb) {
-  if (typeof options === "function") {
+  if (isFunction(options)) {
     cb = options
     options = {}
   }
@@ -118,7 +119,7 @@ function watch(glob, options, cb) {
   }
 
   let fn
-  if (typeof cb === "function") {
+  if (isFunction(cb)) {
     fn = debounce(onChange, opt.delay)
   }
 

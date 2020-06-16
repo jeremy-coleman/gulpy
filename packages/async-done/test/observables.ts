@@ -1,4 +1,4 @@
-import expect from "expect"
+import { expect } from "chai"
 import { asyncDone } from "../"
 import { Observable } from "rxjs"
 
@@ -25,7 +25,7 @@ describe("observables", () => {
 
   it("should handle a finished observable with value", done => {
     asyncDone(successValue, (err, result) => {
-      expect(result).toEqual(42)
+      expect(result).to.equal(42)
       done(err)
     })
   })

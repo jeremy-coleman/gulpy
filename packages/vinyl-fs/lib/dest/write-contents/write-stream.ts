@@ -2,6 +2,7 @@ import * as fo from "../../file-operations"
 import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
 import readStream from "../../src/read-contents/read-stream"
+import { isNumber } from "lodash"
 
 function writeStream(file, optResolver, onWritten) {
   const flags = fo.getFlags({
@@ -73,7 +74,7 @@ function writeStream(file, optResolver, onWritten) {
     }
 
     function complete() {
-      if (typeof fd !== "number") {
+      if (!isNumber(fd)) {
         return callback()
       }
 

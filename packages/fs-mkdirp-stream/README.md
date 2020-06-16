@@ -6,6 +6,8 @@
 
 # fs-mkdirp-stream
 
+Last upstream commit: [87bb5b9 on 17 May 2020](https://github.com/gulpjs/fs-mkdirp-stream/commit/87bb5b9a79b1645ed6b028ecdde5991534faf34f).
+
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][ci-image]][ci-url] [![Coveralls Status][coveralls-image]][coveralls-url]
 
 Ensure directories exist before writing to them.
@@ -13,16 +15,16 @@ Ensure directories exist before writing to them.
 ## Usage
 
 ```js
-var to = require('to2');
-var from = require('from2');
-var mkdirpStream = require('fs-mkdirp-stream');
+var to = require("to2")
+var from = require("from2")
+var mkdirpStream = require("fs-mkdirp-stream")
 
 from
-  .obj([{ dirname: '/path/to/my/', path: '/path/to/my/file.js' }])
+  .obj([{ dirname: "/path/to/my/", path: "/path/to/my/file.js" }])
   .pipe(
     mkdirpStream(function (obj, callback) {
       // callback can take 3 arguments (err, dirname, mode)
-      callback(null, obj.dirname);
+      callback(null, obj.dirname)
     })
   )
   .pipe(
@@ -30,7 +32,7 @@ from
       // This will be called once the directory exists
       // obj === { dirname: '/path/to/my/', path: '/path/to/my/file.js' }
     })
-  );
+  )
 ```
 
 ## API

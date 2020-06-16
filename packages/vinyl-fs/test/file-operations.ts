@@ -2,11 +2,12 @@ import * as path from "path"
 import * as buffer from "buffer"
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import mkdirp from "fs-mkdirp-stream/mkdirp"
 import * as fo from "../lib/file-operations"
 import * as constants from "../lib/constants"
+import from from "from2"
+import pipe from "pump"
 
 const DEFAULT_FILE_MODE = constants.DEFAULT_FILE_MODE
 
@@ -17,10 +18,11 @@ import isWindows from "./utils/is-windows"
 import applyUmask from "./utils/apply-umask"
 import testStreams from "./utils/test-streams"
 import testConstants from "./utils/test-constants"
+import { isFunction } from "lodash"
 
 const closeFd = fo.closeFd
 const isOwner = fo.isOwner
-const writeFile = fo.writeFile
+const writeFile = fo.writeFile as any
 const getModeDiff = fo.getModeDiff
 const getTimesDiff = fo.getTimesDiff
 const getOwnerDiff = fo.getOwnerDiff
@@ -32,9 +34,6 @@ const reflectStat = fo.reflectStat
 const reflectLinkStat = fo.reflectLinkStat
 const updateMetadata = fo.updateMetadata
 const createWriteStream = fo.createWriteStream
-
-const pipe = miss.pipe
-const from = miss.from
 
 const string = testStreams.string
 
@@ -62,12 +61,12 @@ describe("isOwner", () => {
   let geteuidSpy
 
   beforeEach(done => {
-    if (typeof process.geteuid !== "function") {
+    if (!isFunction(process.geteuid)) {
       process.geteuid = noop
     }
 
     // Windows :(
-    if (typeof process.getuid !== "function") {
+    if (!isFunction(process.getuid)) {
       process.getuid = noop
     }
 
@@ -97,8 +96,8 @@ describe("isOwner", () => {
   it("uses process.geteuid() when available", done => {
     isOwner(ownerStat)
 
-    expect(getuidSpy.calls.length).toEqual(0)
-    expect(geteuidSpy.calls.length).toEqual(1)
+    expect(getuidSpy.calls.length).to.equal(0)
+    expect(geteuidSpy.calls.length).to.equal(1)
 
     done()
   })
@@ -108,7 +107,7 @@ describe("isOwner", () => {
 
     isOwner(ownerStat)
 
-    expect(getuidSpy.calls.length).toEqual(1)
+    expect(getuidSpy.calls.length).to.equal(1)
 
     done()
   })
@@ -116,7 +115,7 @@ describe("isOwner", () => {
   it("returns false when non-root and non-owner", done => {
     const result = isOwner(nonOwnerStat)
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -124,7 +123,7 @@ describe("isOwner", () => {
   it("returns true when owner and non-root", done => {
     const result = isOwner(ownerStat)
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -134,7 +133,7 @@ describe("isOwner", () => {
 
     const result = isOwner(nonOwnerStat)
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -144,7 +143,7 @@ describe("isValidUnixId", () => {
   it("returns true if the given id is a valid unix id", done => {
     const result = isValidUnixId(1000)
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -152,7 +151,7 @@ describe("isValidUnixId", () => {
   it("returns false if the given id is not a number", done => {
     const result = isValidUnixId("root")
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -160,7 +159,7 @@ describe("isValidUnixId", () => {
   it("returns false when the given id is less than 0", done => {
     const result = isValidUnixId(-1)
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -173,7 +172,7 @@ describe("getFlags", () => {
       append: false,
     })
 
-    expect(result).toEqual("wx")
+    expect(result).to.equal("wx")
 
     done()
   })
@@ -184,7 +183,7 @@ describe("getFlags", () => {
       append: false,
     })
 
-    expect(result).toEqual("w")
+    expect(result).to.equal("w")
 
     done()
   })
@@ -195,7 +194,7 @@ describe("getFlags", () => {
       append: true,
     })
 
-    expect(result).toEqual("ax")
+    expect(result).to.equal("ax")
 
     done()
   })
@@ -206,7 +205,7 @@ describe("getFlags", () => {
       append: true,
     })
 
-    expect(result).toEqual("a")
+    expect(result).to.equal("a")
 
     done()
   })
@@ -216,7 +215,7 @@ describe("isFatalOverwriteError", () => {
   it("returns false if not given any error", done => {
     const result = isFatalOverwriteError(null)
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -224,7 +223,7 @@ describe("isFatalOverwriteError", () => {
   it("returns true if code != EEXIST", done => {
     const result = isFatalOverwriteError({ code: "EOTHER" })
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -232,7 +231,7 @@ describe("isFatalOverwriteError", () => {
   it("returns false if code == EEXIST and flags == wx", done => {
     const result = isFatalOverwriteError({ code: "EEXIST" }, "wx")
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -240,7 +239,7 @@ describe("isFatalOverwriteError", () => {
   it("returns false if code == EEXIST and flags == ax", done => {
     const result = isFatalOverwriteError({ code: "EEXIST" }, "ax")
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -248,7 +247,7 @@ describe("isFatalOverwriteError", () => {
   it("returns true if error.code == EEXIST and flags == w", done => {
     const result = isFatalOverwriteError({ code: "EEXIST" }, "w")
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -256,7 +255,7 @@ describe("isFatalOverwriteError", () => {
   it("returns true if error.code == EEXIST and flags == a", done => {
     const result = isFatalOverwriteError({ code: "EEXIST" }, "a")
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -266,7 +265,7 @@ describe("isFatalUnlinkError", () => {
   it("returns false if not given any error", done => {
     const result = isFatalUnlinkError(null)
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -274,7 +273,7 @@ describe("isFatalUnlinkError", () => {
   it("returns false if code == ENOENT", done => {
     const result = isFatalUnlinkError({ code: "ENOENT" }, "wx")
 
-    expect(result).toEqual(false)
+    expect(result).to.be.false
 
     done()
   })
@@ -282,7 +281,7 @@ describe("isFatalUnlinkError", () => {
   it("returns true if code != ENOENT", done => {
     const result = isFatalUnlinkError({ code: "EOTHER" })
 
-    expect(result).toEqual(true)
+    expect(result).to.be.true
 
     done()
   })
@@ -295,7 +294,7 @@ describe("getModeDiff", () => {
 
     const result = getModeDiff(fsMode, vfsMode)
 
-    expect(result).toEqual(0)
+    expect(result).to.equal(0)
 
     done()
   })
@@ -306,7 +305,7 @@ describe("getModeDiff", () => {
 
     const result = getModeDiff(fsMode, vfsMode)
 
-    expect(result).toEqual(0)
+    expect(result).to.equal(0)
 
     done()
   })
@@ -709,7 +708,7 @@ describe("closeFd", () => {
 
   it("calls the callback with close error if no error to propagate", done => {
     closeFd(null, invalidFd, err => {
-      expect(err).toExist()
+      expect(err).to.exist
 
       done()
     })
@@ -735,7 +734,7 @@ describe("closeFd", () => {
     closeFd(propagatedError, fd, err => {
       closeSpy.restore()
 
-      expect(closeSpy.calls.length).toEqual(1)
+      expect(closeSpy.calls.length).to.equal(1)
       expect(err).toEqual(propagatedError)
 
       done()
@@ -750,7 +749,7 @@ describe("closeFd", () => {
     closeFd(null, fd, err => {
       spy.restore()
 
-      expect(spy.calls.length).toEqual(1)
+      expect(spy.calls.length).to.equal(1)
       expect(err).toEqual(undefined)
 
       done()
@@ -768,8 +767,8 @@ describe("writeFile", () => {
 
   it("writes a file to the filesystem, does not close and returns the fd", done => {
     writeFile(outputPath, new Buffer(contents), (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, () => {
         const written = fs.readFileSync(outputPath, "utf8")
@@ -785,8 +784,8 @@ describe("writeFile", () => {
     const expected = applyUmask("666")
 
     writeFile(outputPath, new Buffer(contents), (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, () => {
         expect(statMode(outputPath)).toEqual(expected)
@@ -809,8 +808,8 @@ describe("writeFile", () => {
     }
 
     writeFile(outputPath, new Buffer(contents), options, (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, () => {
         expect(statMode(outputPath)).toEqual(expected)
@@ -824,11 +823,11 @@ describe("writeFile", () => {
     const length = contents.length
 
     writeFile(outputPath, new Buffer(contents), (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.read(fd, new Buffer(length), 0, length, 0, readErr => {
-        expect(readErr).toExist()
+        expect(readErr).to.exist
 
         fs.close(fd, done)
       })
@@ -842,11 +841,11 @@ describe("writeFile", () => {
     }
 
     writeFile(outputPath, new Buffer(contents), options, (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.read(fd, new Buffer(length), 0, length, 0, (readErr, _, written) => {
-        expect(readErr).toNotExist()
+        expect(readErr).to.not.exist
 
         expect(written.toString()).toEqual(contents)
 
@@ -868,8 +867,8 @@ describe("writeFile", () => {
     }
 
     writeFile(outputPath, new Buffer(toWrite), options, (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, () => {
         const written = fs.readFileSync(outputPath, "utf8")
@@ -885,8 +884,8 @@ describe("writeFile", () => {
     const notExistDir = path.join(__dirname, "./not-exist-dir/writeFile.txt")
 
     writeFile(notExistDir, new Buffer(contents), (err, fd) => {
-      expect(err).toExist()
-      expect(typeof fd === "number").toEqual(false)
+      expect(err).to.exist
+      expect(typeof fd === "number").to.be.false
 
       done()
     })
@@ -898,8 +897,8 @@ describe("writeFile", () => {
     }
 
     writeFile(inputPath, new Buffer(contents), options, (err, fd) => {
-      expect(err).toExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, done)
     })
@@ -907,7 +906,7 @@ describe("writeFile", () => {
 
   it("passes an error if called with string as data", done => {
     writeFile(outputPath, contents, err => {
-      expect(err).toExist()
+      expect(err).to.exist
 
       done()
     })
@@ -925,8 +924,8 @@ describe("writeFile", () => {
     buf.copy(content, 0, 0, length)
 
     writeFile(outputPath, content, (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, () => {
         const written = fs.readFileSync(outputPath, "utf8")
@@ -940,8 +939,8 @@ describe("writeFile", () => {
 
   it("does not error if options is falsey", done => {
     writeFile(outputPath, new Buffer(contents), null, (err, fd) => {
-      expect(err).toNotExist()
-      expect(typeof fd === "number").toEqual(true)
+      expect(err).to.not.exist
+      expect(fd).to.be.a("number")
 
       fs.close(fd, done)
     })
@@ -960,7 +959,7 @@ describe("reflectStat", () => {
     const file = new File()
 
     reflectStat(neInputDirpath, file, err => {
-      expect(err).toExist()
+      expect(err).to.exist
 
       done()
     })
@@ -997,7 +996,7 @@ describe("reflectLinkStat", () => {
     const file = new File()
 
     reflectLinkStat(neInputDirpath, file, err => {
-      expect(err).toExist()
+      expect(err).to.exist
 
       done()
     })
@@ -1057,7 +1056,7 @@ describe("updateMetadata", () => {
     })
 
     updateMetadata(fd, file, err => {
-      expect(err).toExist()
+      expect(err).to.exist
 
       done()
     })
@@ -1108,8 +1107,8 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w+")
 
     updateMetadata(fd, file, () => {
-      expect(fchmodSpy.calls.length).toEqual(0)
-      expect(futimesSpy.calls.length).toEqual(0)
+      expect(fchmodSpy.calls.length).to.equal(0)
+      expect(futimesSpy.calls.length).to.equal(0)
 
       fs.close(fd, done)
     })
@@ -1121,7 +1120,7 @@ describe("updateMetadata", () => {
       return
     }
 
-    if (typeof process.geteuid !== "function") {
+    if (!isFunction(process.geteuid)) {
       process.geteuid = noop
     }
 
@@ -1143,8 +1142,8 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w+")
 
     updateMetadata(fd, file, () => {
-      expect(fchmodSpy.calls.length).toEqual(0)
-      expect(futimesSpy.calls.length).toEqual(0)
+      expect(fchmodSpy.calls.length).to.equal(0)
+      expect(futimesSpy.calls.length).to.equal(0)
 
       fs.close(fd, done)
     })
@@ -1177,7 +1176,7 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w+")
 
     updateMetadata(fd, file, function () {
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(futimesSpy.calls.length).to.equal(1)
       // Var stats = fs.fstatSync(fd);
 
       const atimeSpy = futimesSpy.calls[0].arguments[1]
@@ -1214,11 +1213,11 @@ describe("updateMetadata", () => {
     })
 
     const fd = fs.openSync(outputPath, "w+")
-    expect(typeof fd === "number").toEqual(true)
+    expect(fd).to.be.a("number")
 
     updateMetadata(fd, file, err => {
-      expect(err).toExist()
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(err).to.exist
+      expect(futimesSpy.calls.length).to.equal(1)
 
       fs.close(fd, done)
     })
@@ -1246,7 +1245,7 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w+")
 
     updateMetadata(fd, file, () => {
-      expect(fchmodSpy.calls.length).toEqual(1)
+      expect(fchmodSpy.calls.length).to.equal(1)
       const stats = fs.fstatSync(fd)
       expect(file.stat.mode).toEqual(stats.mode)
 
@@ -1276,7 +1275,7 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w+")
 
     updateMetadata(fd, file, () => {
-      expect(fchmodSpy.calls.length).toEqual(1)
+      expect(fchmodSpy.calls.length).to.equal(1)
       const stats = fs.fstatSync(fd)
       expect(file.stat.mode).toEqual(stats.mode)
 
@@ -1306,8 +1305,8 @@ describe("updateMetadata", () => {
     const fchmodSpy = expect.spyOn(fs, "fchmod").andCall(mockError)
 
     updateMetadata(fd, file, err => {
-      expect(err).toExist()
-      expect(fchmodSpy.calls.length).toEqual(1)
+      expect(err).to.exist
+      expect(fchmodSpy.calls.length).to.equal(1)
 
       fs.close(fd, done)
     })
@@ -1344,8 +1343,8 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w+")
 
     updateMetadata(fd, file, function () {
-      expect(fchmodSpy.calls.length).toEqual(1)
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(fchmodSpy.calls.length).to.equal(1)
+      expect(futimesSpy.calls.length).to.equal(1)
 
       const atimeSpy = futimesSpy.calls[0].arguments[1]
       const mtimeSpy = futimesSpy.calls[0].arguments[2]
@@ -1390,10 +1389,10 @@ describe("updateMetadata", () => {
     const fd = fs.openSync(outputPath, "w")
 
     updateMetadata(fd, file, err => {
-      expect(err).toExist()
+      expect(err).to.exist
       expect(err).toEqual(mockedErr)
-      expect(fchmodSpy.calls.length).toEqual(1)
-      expect(futimesSpy.calls.length).toEqual(1)
+      expect(fchmodSpy.calls.length).to.equal(1)
+      expect(futimesSpy.calls.length).to.equal(1)
 
       fs.close(fd, done)
     })
@@ -1511,7 +1510,7 @@ describe("createWriteStream", () => {
     })
 
     function assert(err) {
-      expect(flushCalled).toEqual(true)
+      expect(flushCalled).to.be.true
       done(err)
     }
 
@@ -1527,7 +1526,7 @@ describe("createWriteStream", () => {
     })
 
     function assert(err) {
-      expect(flushCalled).toEqual(true)
+      expect(flushCalled).to.be.true
       done(err)
     }
 
@@ -1544,7 +1543,7 @@ describe("createWriteStream", () => {
     })
 
     function assert(err) {
-      expect(flushCalled).toEqual(true)
+      expect(flushCalled).to.be.true
       done(err)
     }
 
@@ -1564,8 +1563,8 @@ describe("createWriteStream", () => {
     })
 
     function assert(err) {
-      expect(flushCalled).toEqual(true)
-      expect(timeoutCalled).toEqual(true)
+      expect(flushCalled).to.be.true
+      expect(timeoutCalled).to.be.true
       done(err)
     }
 

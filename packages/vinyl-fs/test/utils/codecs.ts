@@ -1,14 +1,14 @@
-import expect from "expect"
+import { expect } from "chai"
 
 function checkCodec(codec) {
-  expect(typeof codec).toEqual("object")
-  expect(codec.constructor.name).toEqual("Codec")
-  expect(typeof codec.enc).toEqual("string")
-  expect(typeof codec.bomAware).toEqual("boolean")
-  expect(typeof codec.encode).toEqual("function")
-  expect(typeof codec.encodeStream).toEqual("function")
-  expect(typeof codec.decode).toEqual("function")
-  expect(typeof codec.decodeStream).toEqual("function")
+  expect(codec).to.be.a("object")
+  expect(codec.constructor.name).to.equal("Codec")
+  expect(codec.enc).to.be.a("string")
+  expect(codec.bomAware).to.be.a("boolean")
+  expect(codec.encode).to.be.a("function")
+  expect(codec.encodeStream).to.be.a("function")
+  expect(codec.decode).to.be.a("function")
+  expect(codec.decodeStream).to.be.a("function")
 }
 
 export default checkCodec

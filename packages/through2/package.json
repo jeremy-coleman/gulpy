@@ -4,7 +4,7 @@
   "description": "A tiny wrapper around Node.js streams.Transform (Streams2/3) to avoid explicit subclassing noise",
   "main": "index.ts",
   "scripts": {
-    "test": "nyc node test/test.js | faucet && nyc report"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "repository": {
     "type": "git",

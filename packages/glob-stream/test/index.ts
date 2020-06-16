@@ -1,14 +1,16 @@
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import globStream from "../"
+
+import pipe from "pump"
+import concat from "concat-stream"
+import * as through2 from "through2"
+
+import from from "from2"
+import to from "flush-write-stream"
 
 function deWindows(p) {
   return p.replace(/\\/g, "/")
 }
-
-const pipe = miss.pipe
-const concat = miss.concat
-const through2 = miss.through
 
 const dir = deWindows(__dirname)
 
@@ -21,7 +23,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -36,7 +38,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -51,7 +53,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -66,7 +68,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -83,7 +85,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -98,7 +100,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -128,10 +130,10 @@ describe("glob-stream", () => {
     ]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(3)
-      expect(pathObjs).toInclude(expected[0])
-      expect(pathObjs).toInclude(expected[1])
-      expect(pathObjs).toInclude(expected[2])
+      expect(pathObjs.length).to.equal(3)
+      expect(pathObjs).to.deep.include(expected[0])
+      expect(pathObjs).to.deep.include(expected[1])
+      expect(pathObjs).to.deep.include(expected[2])
     }
 
     pipe([globStream("./fixtures/**/*.dmc", { cwd: dir }), concat(assert)], done)
@@ -150,7 +152,7 @@ describe("glob-stream", () => {
     })
 
     function assert({ length }) {
-      expect(length).toEqual(2)
+      expect(length).to.equal(2)
     }
 
     pipe(
@@ -187,8 +189,8 @@ describe("glob-stream", () => {
     ]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(3)
-      expect(pathObjs).toEqual(expected)
+      expect(pathObjs.length).to.equal(3)
+      expect(pathObjs).to.deep.equal(expected)
     }
 
     pipe([globStream(paths, { cwd: base, base }), concat(assert)], done)
@@ -222,8 +224,8 @@ describe("glob-stream", () => {
     ]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(3)
-      expect(pathObjs).toEqual(expected)
+      expect(pathObjs.length).to.equal(3)
+      expect(pathObjs).to.deep.equal(expected)
     }
 
     pipe([globStream(paths, { cwd: base, cwdbase: true }), concat(assert)], done)
@@ -266,8 +268,8 @@ describe("glob-stream", () => {
     ]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(5)
-      expect(pathObjs).toEqual(expected)
+      expect(pathObjs.length).to.equal(5)
+      expect(pathObjs).to.deep.equal(expected)
     }
 
     pipe([globStream(globs, { cwd: dir }), concat(assert)], done)
@@ -299,8 +301,8 @@ describe("glob-stream", () => {
     ]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(3)
-      expect(pathObjs).toEqual(expected)
+      expect(pathObjs.length).to.equal(3)
+      expect(pathObjs).to.deep.equal(expected)
     }
 
     pipe([globStream(paths), concat(assert)], done)
@@ -314,8 +316,8 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
-      expect(pathObjs[0]).toEqual(expected)
+      expect(pathObjs.length).to.equal(1)
+      expect(pathObjs[0]).to.deep.equal(expected)
     }
 
     pipe(
@@ -335,8 +337,8 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
-      expect(pathObjs[0]).toEqual(expected)
+      expect(pathObjs.length).to.equal(1)
+      expect(pathObjs[0]).to.deep.equal(expected)
     }
 
     pipe(
@@ -368,9 +370,9 @@ describe("glob-stream", () => {
     const uniqueBy = ({ path }) => path
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(2)
-      expect(pathObjs).toInclude(expected[0])
-      expect(pathObjs).toInclude(expected[1])
+      expect(pathObjs.length).to.equal(2)
+      expect(pathObjs).to.deep.include(expected[0])
+      expect(pathObjs).to.deep.include(expected[1])
     }
 
     pipe(
@@ -381,7 +383,7 @@ describe("glob-stream", () => {
 
   it("ignores dotfiles without dot option", done => {
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     pipe([globStream("./fixtures/*swag", { cwd: dir }), concat(assert)], done)
@@ -395,8 +397,8 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
-      expect(pathObjs[0]).toEqual(expected)
+      expect(pathObjs.length).to.equal(1)
+      expect(pathObjs[0]).to.deep.equal(expected)
     }
 
     pipe([globStream("./fixtures/*swag", { cwd: dir, dot: true }), concat(assert)], done)
@@ -404,7 +406,7 @@ describe("glob-stream", () => {
 
   it("removes dotfiles that match negative globs with dot option", done => {
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     pipe(
@@ -424,8 +426,8 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
-      expect(pathObjs[0]).toEqual(expected)
+      expect(pathObjs.length).to.equal(1)
+      expect(pathObjs[0]).to.deep.equal(expected)
     }
 
     const stream = globStream("./fixtures/test.coffee", { cwd: dir })
@@ -446,7 +448,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -463,8 +465,8 @@ describe("glob-stream", () => {
     const globs = [`${dir}/fixtures/stuff/*.dmc`, `!${dir}/fixtures/stuff/*test.dmc`]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
-      expect(pathObjs[0]).toEqual(expected)
+      expect(pathObjs.length).to.equal(1)
+      expect(pathObjs[0]).to.deep.equal(expected)
     }
 
     pipe([globStream(globs), concat(assert)], done)
@@ -480,8 +482,8 @@ describe("glob-stream", () => {
     const paths = [`${dir}/fixtures/stuff/*.dmc`, `!${dir}/fixtures/stuff/test.dmc`]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
-      expect(pathObjs[0]).toEqual(expected)
+      expect(pathObjs.length).to.equal(1)
+      expect(pathObjs[0]).to.deep.equal(expected)
     }
 
     pipe([globStream(paths), concat(assert)], done)
@@ -489,7 +491,7 @@ describe("glob-stream", () => {
 
   it("does not error when a negative glob removes all matches from a positive glob", done => {
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     pipe(
@@ -512,7 +514,7 @@ describe("glob-stream", () => {
     ]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -529,7 +531,7 @@ describe("glob-stream", () => {
     const globs = ["!./fixtures/stuff/*.dmc", "./fixtures/stuff/run.dmc"]
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -537,26 +539,20 @@ describe("glob-stream", () => {
   })
 
   it("throws on invalid glob argument", done => {
-    expect(globStream.bind(globStream, 42, { cwd: dir })).toThrow(/Invalid glob .* 0/)
-    expect(globStream.bind(globStream, [".", 42], { cwd: dir })).toThrow(
-      /Invalid glob .* 1/
-    )
+    expect(() => globStream(42, { cwd: dir })).to.throw(/Invalid glob .* 0/)
+    expect(() => globStream([".", 42], { cwd: dir })).to.throw(/Invalid glob .* 1/)
     done()
   })
 
   it("throws on missing positive glob", done => {
-    expect(globStream.bind(globStream, "!c", { cwd: dir })).toThrow(
-      /Missing positive glob/
-    )
-    expect(globStream.bind(globStream, ["!a", "!b"], { cwd: dir })).toThrow(
-      /Missing positive glob/
-    )
+    expect(() => globStream("!c", { cwd: dir })).to.throw(/Missing positive glob/)
+    expect(() => globStream(["!a", "!b"], { cwd: dir })).to.throw(/Missing positive glob/)
     done()
   })
 
   it("emits an error when file not found on singular path", done => {
     function assert(err) {
-      expect(err).toMatch(/File not found with singular glob/)
+      expect(err).to.match(/File not found with singular glob/)
       done()
     }
 
@@ -565,7 +561,7 @@ describe("glob-stream", () => {
 
   it("does not emit an error when file not found on glob containing {}", done => {
     function assert(err) {
-      expect(err).toNotExist()
+      expect(err).to.not.exist
       done()
     }
 
@@ -574,7 +570,7 @@ describe("glob-stream", () => {
 
   it("does not emit an error on singular path when allowEmpty is true", done => {
     function assert(err) {
-      expect(err).toNotExist()
+      expect(err).to.not.exist
       done()
     }
 
@@ -613,7 +609,7 @@ describe("glob-stream", () => {
     }
 
     function assert(pathObjs) {
-      expect(pathObjs.length).toEqual(1)
+      expect(pathObjs.length).to.equal(1)
       expect(pathObjs[0]).toEqual(expected)
     }
 
@@ -634,7 +630,7 @@ describe("options", () => {
     const opts = {}
 
     const stream = globStream(`${dir}/fixtures/stuff/run.dmc`, opts)
-    expect(Object.keys(opts).length).toEqual(0)
+    expect(Object.keys(opts).length).to.equal(0)
     expect(opts).toNotEqual(defaultedOpts)
 
     pipe([stream, concat()], done)
@@ -656,7 +652,7 @@ describe("options", () => {
 
     it("does not have any effect on our results", done => {
       function assert({ length }) {
-        expect(length).toEqual(0)
+        expect(length).to.equal(0)
       }
 
       pipe([globStream("notfound{a,b}", { nonull: true }), concat(assert)], done)
@@ -672,7 +668,7 @@ describe("options", () => {
       }
 
       function assert(pathObjs) {
-        expect(pathObjs.length).toEqual(1)
+        expect(pathObjs.length).to.equal(1)
         expect(pathObjs[0]).toEqual(expected)
       }
 
@@ -696,7 +692,7 @@ describe("options", () => {
       }
 
       function assert(pathObjs) {
-        expect(pathObjs.length).toEqual(1)
+        expect(pathObjs.length).to.equal(1)
         expect(pathObjs[0]).toEqual(expected)
       }
 
@@ -714,7 +710,7 @@ describe("options", () => {
 
     it("supports the ignore option with dot option", done => {
       function assert({ length }) {
-        expect(length).toEqual(0)
+        expect(length).to.equal(0)
       }
 
       pipe(
@@ -734,7 +730,7 @@ describe("options", () => {
       const globs = ["./fixtures/stuff/*.dmc", "!./fixtures/stuff/test.dmc"]
 
       function assert({ length }) {
-        expect(length).toEqual(0)
+        expect(length).to.equal(0)
       }
 
       pipe(

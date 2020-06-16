@@ -2,6 +2,7 @@ import * as path from "path"
 import * as fs from "fs"
 import Vinyl from "vinyl"
 import through from "through2"
+import { isFunction } from "lodash"
 
 function prepareWrite(folderResolver, optResolver) {
   if (!folderResolver) {
@@ -14,7 +15,7 @@ function prepareWrite(folderResolver, optResolver) {
     }
 
     // TODO: Remove this after people upgrade vinyl/transition from gulp-util
-    if (typeof file.isSymbolic !== "function") {
+    if (!isFunction(file.isSymbolic)) {
       file = new Vinyl(file)
     }
 

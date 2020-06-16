@@ -1,4 +1,4 @@
-import expect from "expect"
+import { expect } from "chai"
 import * as cp from "child_process"
 import { asyncDone } from "../"
 

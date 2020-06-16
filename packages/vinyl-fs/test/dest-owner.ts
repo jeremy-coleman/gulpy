@@ -1,15 +1,14 @@
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import isWindows from "./utils/is-windows"
 import testConstants from "./utils/test-constants"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const inputBase = testConstants.inputBase
 const outputBase = testConstants.outputBase
@@ -41,9 +40,9 @@ describe(".dest() with custom owner", () => {
     })
 
     function assert() {
-      expect(fchownSpy.calls.length).toEqual(1)
-      expect(fchownSpy.calls[0].arguments[1]).toEqual(1001)
-      expect(fchownSpy.calls[0].arguments[2]).toEqual(1001)
+      expect(fchownSpy.calls.length).to.equal(1)
+      expect(fchownSpy.calls[0].arguments[1]).to.equal(1001)
+      expect(fchownSpy.calls[0].arguments[2]).to.equal(1001)
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -68,7 +67,7 @@ describe(".dest() with custom owner", () => {
     })
 
     function assert() {
-      expect(fchownSpy.calls.length).toEqual(0)
+      expect(fchownSpy.calls.length).to.equal(0)
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)

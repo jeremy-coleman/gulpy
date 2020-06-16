@@ -1,8 +1,7 @@
 import * as path from "path"
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import statMode from "./utils/stat-mode"
@@ -13,10 +12,10 @@ import always from "./utils/always"
 import testConstants from "./utils/test-constants"
 import breakPrototype from "./utils/break-prototype"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
-const through = miss.through
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
+import through from "through2"
 
 const count = testStreams.count
 const rename = testStreams.rename
@@ -64,7 +63,7 @@ describe(".dest()", () => {
       vfs.dest()
     }
 
-    expect(noFolder).toThrow(
+    expect(noFolder).to.throw(
       "Invalid dest() folder argument. Please specify a non-empty string or a function."
     )
     done()
@@ -75,7 +74,7 @@ describe(".dest()", () => {
       vfs.dest("")
     }
 
-    expect(emptyFolder).toThrow(
+    expect(emptyFolder).to.throw(
       "Invalid dest() folder argument. Please specify a non-empty string or a function."
     )
     done()
@@ -90,7 +89,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
     }
 
@@ -109,7 +108,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(2)
+      expect(files.length).to.equal(2)
       expect(files).toInclude(file)
     }
 
@@ -128,7 +127,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].contents.toString()).toMatch(new RegExp(sourcemapContents))
     }
@@ -148,7 +147,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(2)
+      expect(files.length).to.equal(2)
       expect(files).toInclude(file)
       expect(files[0].contents.toString()).toMatch(
         new RegExp("//# sourceMappingURL=test.txt.map")
@@ -170,7 +169,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].cwd).toEqual(__dirname, "cwd should have changed")
     }
@@ -189,7 +188,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].cwd).toEqual(process.cwd(), "cwd should not have changed")
     }
@@ -207,11 +206,11 @@ describe(".dest()", () => {
     function assert(files) {
       const exists = fs.existsSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
-      expect(exists).toEqual(false)
+      expect(exists).to.be.false
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -229,7 +228,7 @@ describe(".dest()", () => {
     function assert(files) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].cwd).toEqual(__dirname, "cwd should have changed")
       expect(files[0].base).toEqual(outputBase, "base should have changed")
@@ -250,7 +249,7 @@ describe(".dest()", () => {
     })
 
     function outputFn(f) {
-      expect(f).toExist()
+      expect(f).to.exist
       expect(f).toExist(file)
       return outputRelative
     }
@@ -258,7 +257,7 @@ describe(".dest()", () => {
     function assert(files) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].cwd).toEqual(__dirname, "cwd should have changed")
       expect(files[0].base).toEqual(outputBase, "base should have changed")
@@ -279,7 +278,7 @@ describe(".dest()", () => {
     function assert(files) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -299,7 +298,7 @@ describe(".dest()", () => {
     function assert(files) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -321,7 +320,7 @@ describe(".dest()", () => {
     function assert(files) {
       const stats = fs.lstatSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(stats.size).toEqual(size)
     }
@@ -342,12 +341,12 @@ describe(".dest()", () => {
     function assert(files) {
       const stats = fs.lstatSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       // TODO: normalize this path
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
-      expect(stats.isDirectory()).toEqual(true)
+      expect(stats.isDirectory()).to.be.true
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -391,7 +390,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(statMode(outputPath)).toEqual(expectedMode)
     }
@@ -407,7 +406,7 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
+      expect(err).to.exist
       done()
     }
 
@@ -433,8 +432,8 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
-      expect(fstatSpy.calls.length).toEqual(1)
+      expect(err).to.exist
+      expect(fstatSpy.calls.length).to.equal(1)
       done()
     }
 
@@ -456,7 +455,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents)
     }
 
@@ -482,7 +481,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(contents)
     }
 
@@ -513,7 +512,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents)
     }
 
@@ -541,7 +540,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(contents)
     }
 
@@ -564,7 +563,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents + contents)
     }
 
@@ -592,7 +591,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents + contents)
     }
 
@@ -614,7 +613,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toMatch(expectedContents)
     }
 
@@ -635,7 +634,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toMatch(expectedContents)
     }
 
@@ -656,7 +655,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toMatch(expectedContents)
     }
 
@@ -677,7 +676,7 @@ describe(".dest()", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toMatch(expectedContents)
     }
 
@@ -698,8 +697,8 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isBuffer()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isBuffer()).to.be.true
       expect(files[0].contents).toMatch(expectedContents)
     }
 
@@ -723,14 +722,14 @@ describe(".dest()", () => {
       expect(contents).toMatch(expectedContents)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -752,12 +751,12 @@ describe(".dest()", () => {
     })
 
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     function finish(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Unsupported encoding: fubar42")
+      expect(err).to.exist
+      expect(err.message).to.equal("Unsupported encoding: fubar42")
       done()
     }
 
@@ -775,12 +774,12 @@ describe(".dest()", () => {
     })
 
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     function finish(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Unsupported encoding: fubar42")
+      expect(err).to.exist
+      expect(err.message).to.equal("Unsupported encoding: fubar42")
       done()
     }
 
@@ -872,7 +871,7 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(readables).toEqual(1)
+      expect(readables).to.equal(1)
       done(err)
     }
 
@@ -894,7 +893,7 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(datas).toEqual(1)
+      expect(datas).to.equal(1)
       done(err)
     }
 
@@ -979,8 +978,8 @@ describe(".dest()", () => {
     const file = {}
 
     function assert(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Received a non-Vinyl object in `dest()`")
+      expect(err).to.exist
+      expect(err.message).to.equal("Received a non-Vinyl object in `dest()`")
       done()
     }
 
@@ -991,8 +990,8 @@ describe(".dest()", () => {
     const file = new Buffer("test")
 
     function assert(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Received a non-Vinyl object in `dest()`")
+      expect(err).to.exist
+      expect(err.message).to.equal("Received a non-Vinyl object in `dest()`")
       done()
     }
 
@@ -1009,8 +1008,8 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
-      expect(mkdirSpy.calls.length).toEqual(1)
+      expect(err).to.exist
+      expect(mkdirSpy.calls.length).to.equal(1)
       done()
     }
 
@@ -1038,8 +1037,8 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
-      expect(mkdirSpy.calls.length).toEqual(2)
+      expect(err).to.exist
+      expect(mkdirSpy.calls.length).to.equal(2)
       done()
     }
 
@@ -1060,7 +1059,7 @@ describe(".dest()", () => {
 
     function assert() {
       const exists = fs.existsSync(outputDirpath)
-      expect(exists).toEqual(true)
+      expect(exists).to.be.true
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -1079,8 +1078,8 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
-      expect(openSpy.calls.length).toEqual(1)
+      expect(err).to.exist
+      expect(openSpy.calls.length).to.equal(1)
       done()
     }
 
@@ -1099,7 +1098,7 @@ describe(".dest()", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
+      expect(err).to.exist
       done()
     }
 
@@ -1118,7 +1117,7 @@ describe(".dest()", () => {
 
     function assert() {
       // Called never because it's not a valid option
-      expect(read.calls.length).toEqual(0)
+      expect(read.calls.length).to.equal(0)
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase, { read }), concat(assert)], done)
@@ -1131,7 +1130,7 @@ describe(".dest()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // Avoid comparing stats because they get reflected
       delete files[0].stat
       expect(files[0]).toMatch(file)
@@ -1150,7 +1149,7 @@ describe(".dest()", () => {
     breakPrototype(file)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // Avoid comparing stats because they get reflected
       delete files[0].stat
       expect(files[0]).toMatch(file)

@@ -1,17 +1,16 @@
 import * as path from "path"
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import isWindows from "./utils/is-windows"
 import always from "./utils/always"
 import testConstants from "./utils/test-constants"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const inputBase = testConstants.inputBase
 const outputBase = testConstants.outputBase
@@ -48,10 +47,10 @@ describe(".dest() with symlinks", () => {
     function assert(files) {
       const symlink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(file.symlink).toEqual(symlink)
       expect(files[0].symlink).toEqual(symlink)
-      expect(files[0].isSymbolic()).toBe(true)
+      expect(files[0].isSymbolic()).to.be.true
       expect(files[0].path).toEqual(outputPath)
     }
 
@@ -74,7 +73,7 @@ describe(".dest() with symlinks", () => {
     function assert({ length }) {
       const symlinkExists = fs.existsSync(outputPath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(symlinkExists).toBe(false)
     }
 
@@ -92,8 +91,8 @@ describe(".dest() with symlinks", () => {
     })
 
     function assert(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Missing symlink property on symbolic vinyl")
+      expect(err).to.exist
+      expect(err.message).to.equal("Missing symlink property on symbolic vinyl")
       done()
     }
 
@@ -114,8 +113,8 @@ describe(".dest() with symlinks", () => {
     file.symlink = inputPath
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isSymbolic()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isSymbolic()).to.be.true
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -137,9 +136,9 @@ describe(".dest() with symlinks", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(outputLink).toEqual(path.normalize("../fixtures/test.txt"))
-      expect(files[0].isSymbolic()).toBe(true)
+      expect(files[0].isSymbolic()).to.be.true
     }
 
     pipe(
@@ -175,10 +174,10 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(inputDirpath)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -207,11 +206,11 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       // When creating a junction, it seems Windows appends a separator
       expect(outputLink).toEqual(inputDirpath + path.sep)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase), concat(assert)], done)
@@ -240,10 +239,10 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(inputDirpath)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -271,7 +270,7 @@ describe(".dest() with symlinks", () => {
     file.symlink = inputDirpath
 
     function useJunctions(f) {
-      expect(f).toExist()
+      expect(f).to.exist
       expect(f).toBe(file)
       return false
     }
@@ -281,10 +280,10 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(inputDirpath)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe([from.obj([file]), vfs.dest(outputBase, { useJunctions }), concat(assert)], done)
@@ -313,10 +312,10 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(path.normalize("../fixtures/foo"))
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -352,10 +351,10 @@ describe(".dest() with symlinks", () => {
       const outputLink = fs.readlinkSync(neOutputDirpath)
       const linkTargetExists = fs.existsSync(outputLink)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(neInputDirpath)
-      expect(linkTargetExists).toEqual(false)
-      expect(lstats.isSymbolicLink()).toEqual(true)
+      expect(linkTargetExists).to.be.false
+      expect(lstats.isSymbolicLink()).to.be.true
     }
 
     pipe(
@@ -395,10 +394,10 @@ describe(".dest() with symlinks", () => {
       const outputLink = fs.readlinkSync(neOutputDirpath)
       const linkTargetExists = fs.existsSync(outputLink)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(neInputDirpath)
-      expect(linkTargetExists).toEqual(false)
-      expect(lstats.isSymbolicLink()).toEqual(true)
+      expect(linkTargetExists).to.be.false
+      expect(lstats.isSymbolicLink()).to.be.true
     }
 
     pipe(
@@ -435,11 +434,11 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       // When creating a junction, it seems Windows appends a separator
       expect(outputLink).toEqual(inputDirpath + path.sep)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -473,7 +472,7 @@ describe(".dest() with symlinks", () => {
     function assert({ length }) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputLink).toEqual(path.normalize("../fixtures/test.txt"))
     }
 
@@ -511,13 +510,13 @@ describe(".dest() with symlinks", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       expect(outputLink).toEqual(path.normalize("../fixtures/foo"))
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -548,7 +547,7 @@ describe(".dest() with symlinks", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents)
     }
 
@@ -580,7 +579,7 @@ describe(".dest() with symlinks", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(contents)
     }
 
@@ -617,7 +616,7 @@ describe(".dest() with symlinks", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents)
     }
 
@@ -651,7 +650,7 @@ describe(".dest() with symlinks", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(contents)
     }
 

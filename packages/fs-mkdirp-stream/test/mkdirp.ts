@@ -2,9 +2,10 @@ import * as os from "os"
 import * as path from "path"
 import * as fs from "fs"
 import mock from "jest-mock"
-import expect from "expect"
+import { expect } from "chai"
 import rimraf from "rimraf"
 import mkdirp from "../mkdirp"
+import { isNumber } from "lodash"
 
 const log = {
   expected(expected) {
@@ -50,7 +51,7 @@ function suite() {
   }
 
   function expectedMode(mode) {
-    if (typeof mode !== "number") {
+    if (!isNumber(mode)) {
       mode = parseInt(mode, 8)
     }
 
@@ -279,7 +280,7 @@ function suite() {
 
         mkdirp(outputNestedPath, err3 => {
           expect(err3).toBeDefined()
-          expect(err3.code).toEqual("EEXIST")
+          expect(err3.code).to.equal("EEXIST")
 
           done()
         })

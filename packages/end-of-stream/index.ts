@@ -3,7 +3,7 @@ import type { ClientRequest } from "http"
 import type { ChildProcess, ChildProcessWithoutNullStreams } from "child_process"
 
 function isRequest(stream): stream is ClientRequest {
-  return stream.setHeader && typeof stream.abort === "function"
+  return stream.setHeader && isFunction(stream.abort)
 }
 
 function isChildProcess(stream): stream is ChildProcess {

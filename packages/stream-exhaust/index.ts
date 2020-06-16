@@ -1,4 +1,6 @@
 import { Writable } from "stream"
+import { isFunction } from "lodash"
+
 export default resumer
 
 function resumer(stream) {
@@ -11,7 +13,7 @@ function resumer(stream) {
     return stream
   }
 
-  if (typeof stream.resume === "function") {
+  if (isFunction(stream.resume)) {
     stream.resume()
     return stream
   }

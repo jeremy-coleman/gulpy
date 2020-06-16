@@ -1,4 +1,4 @@
-import expect from "expect"
+import { expect } from "chai"
 import * as fs from "fs"
 import * as path from "path"
 import * as through from "through2"
@@ -75,7 +75,7 @@ describe("streams", () => {
         }),
       (err, result) => {
         expect(err).toNotBeAn(Error)
-        expect(result).toEqual(3) // To know we called the callback
+        expect(result).to.equal(3) // To know we called the callback
         done()
       }
     )

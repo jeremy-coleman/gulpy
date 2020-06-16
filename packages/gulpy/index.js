@@ -9,7 +9,6 @@ var events = require("events")
 var lodash = require("lodash")
 var domain = require("domain")
 var stream = require("stream")
-var Combine = _interopDefault(require("ordered-read-streams"))
 var unique = _interopDefault(require("unique-stream"))
 var pump = _interopDefault(require("pump"))
 var Duplexify = _interopDefault(require("duplexify"))
@@ -40,7 +39,7 @@ var defaults = _interopDefault(require("object.defaults/immutable"))
 var anymatch = _interopDefault(require("anymatch"))
 
 function isRequest(stream) {
-  return stream.setHeader && typeof stream.abort === "function"
+  return stream.setHeader && lodash.isFunction(stream.abort)
 }
 
 function isChildProcess(stream) {
@@ -153,7 +152,7 @@ function resumer(stream) {
     return stream
   }
 
-  if (typeof stream.resume === "function") {
+  if (lodash.isFunction(stream.resume)) {
     stream.resume()
     return stream
   }
@@ -894,6 +893,80 @@ class Undertaker extends events.EventEmitter {
   }
 }
 
+function isReadable({ pipe, readable, _read, _readableState }) {
+  return (
+    lodash.isFunction(pipe) && !!readable && lodash.isFunction(_read) && !!_readableState
+  )
+}
+
+function addStream(streams, stream) {
+  if (!isReadable(stream)) {
+    throw new Error("All input streams must be readable")
+  }
+
+  const self = this
+  stream._buffer = []
+  stream.on("readable", function () {
+    let chunk = stream.read()
+
+    while (chunk) {
+      if (this === streams[0]) {
+        self.push(chunk)
+      } else {
+        this._buffer.push(chunk)
+      }
+
+      chunk = stream.read()
+    }
+  })
+  stream.on("end", () => {
+    for (
+      let stream = streams[0];
+      stream && stream._readableState.ended;
+      stream = streams[0]
+    ) {
+      while (stream._buffer.length) {
+        this.push(stream._buffer.shift())
+      }
+
+      streams.shift()
+    }
+
+    if (!streams.length) {
+      this.push(null)
+    }
+  })
+  stream.on("error", this.emit.bind(this, "error"))
+  streams.push(stream)
+}
+
+class OrderedStreams extends stream.Readable {
+  constructor(
+    streams = [],
+    options = {
+      objectMode: true,
+    }
+  ) {
+    options.objectMode = true
+    super(options)
+
+    if (!Array.isArray(streams)) {
+      streams = [streams]
+    }
+
+    if (!streams.length) {
+      this.push(null)
+    } else {
+      const _streams = []
+      streams.flat(1).forEach(item => {
+        addStream.call(this, _streams, item)
+      })
+    }
+  }
+
+  _read() {}
+}
+
 const toArray = args => {
   if (!args.length) return []
   return Array.isArray(args[0]) ? args[0] : Array.prototype.slice.call(args)
@@ -1046,12 +1119,12 @@ function globStream(globs, opt) {
 
   const ourOpt = Object.assign({}, opt)
   let ignore = ourOpt.ignore
-  ourOpt.cwd = typeof ourOpt.cwd === "string" ? ourOpt.cwd : process.cwd()
-  ourOpt.dot = typeof ourOpt.dot === "boolean" ? ourOpt.dot : false
-  ourOpt.silent = typeof ourOpt.silent === "boolean" ? ourOpt.silent : true
-  ourOpt.cwdbase = typeof ourOpt.cwdbase === "boolean" ? ourOpt.cwdbase : false
+  ourOpt.cwd = lodash.isString(ourOpt.cwd) ? ourOpt.cwd : process.cwd()
+  ourOpt.dot = lodash.isBoolean(ourOpt.dot) ? ourOpt.dot : false
+  ourOpt.silent = lodash.isBoolean(ourOpt.silent) ? ourOpt.silent : true
+  ourOpt.cwdbase = lodash.isBoolean(ourOpt.cwdbase) ? ourOpt.cwdbase : false
   ourOpt.uniqueBy =
-    typeof ourOpt.uniqueBy === "string" || typeof ourOpt.uniqueBy === "function"
+    lodash.isString(ourOpt.uniqueBy) || lodash.isFunction(ourOpt.uniqueBy)
       ? ourOpt.uniqueBy
       : "path"
 
@@ -1059,7 +1132,7 @@ function globStream(globs, opt) {
     ourOpt.base = ourOpt.cwd
   }
 
-  if (typeof ignore === "string") {
+  if (lodash.isString(ignore)) {
     ignore = [ignore]
   }
 
@@ -1076,7 +1149,7 @@ function globStream(globs, opt) {
   globs.forEach(sortGlobs)
 
   function sortGlobs(globString, index) {
-    if (typeof globString !== "string") {
+    if (!lodash.isString(globString)) {
       throw new Error(`Invalid glob at index ${index}`)
     }
 
@@ -1093,9 +1166,9 @@ function globStream(globs, opt) {
   }
 
   const streams = positives.map(streamFromPositive)
-  const aggregate = new Combine(streams)
+  const aggregate = new OrderedStreams(streams)
   const uniqueStream = unique(ourOpt.uniqueBy)
-  return pumpify.obj(aggregate, uniqueStream)
+  return obj(aggregate, uniqueStream)
 
   function streamFromPositive({ index, glob }) {
     const negativeGlobs = negatives
@@ -1894,7 +1967,7 @@ function isFatalUnlinkError(err) {
 function getModeDiff(fsMode, vinylMode) {
   let modeDiff = 0
 
-  if (typeof vinylMode === "number") {
+  if (lodash.isNumber(vinylMode)) {
     modeDiff = (vinylMode ^ fsMode) & MASK_MODE
   }
 
@@ -1961,8 +2034,8 @@ function getOwnerDiff(fsStat, vinylStat) {
 }
 
 function isOwner(fsStat) {
-  const hasGetuid = typeof process.getuid === "function"
-  const hasGeteuid = typeof process.geteuid === "function"
+  const hasGetuid = lodash.isFunction(process.getuid)
+  const hasGeteuid = lodash.isFunction(process.geteuid)
 
   if (!hasGeteuid && !hasGetuid) {
     return false
@@ -2118,7 +2191,7 @@ function symlink(srcPath, destPath, { flags, type }, callback) {
 }
 
 function writeFile(filepath, data, options, callback) {
-  if (typeof options === "function") {
+  if (lodash.isFunction(options)) {
     callback = options
     options = {}
   }
@@ -2155,7 +2228,7 @@ function createWriteStream(path, options, flush) {
 
 class WriteStream extends stream.Writable {
   constructor(path, options, flush) {
-    if (typeof options === "function") {
+    if (lodash.isFunction(options)) {
       flush = options
       options = null
     }
@@ -2204,8 +2277,8 @@ class WriteStream extends stream.Writable {
       this.once("close", cb)
     }
 
-    if (this.closed || typeof this.fd !== "number") {
-      if (typeof this.fd !== "number") {
+    if (this.closed || !lodash.isNumber(this.fd)) {
+      if (!lodash.isNumber(this.fd)) {
         this.once("open", closeOnOpen)
         return
       }
@@ -2227,7 +2300,7 @@ class WriteStream extends stream.Writable {
   }
 
   _final(callback) {
-    if (typeof this.flush !== "function") {
+    if (!lodash.isFunction(this.flush)) {
       return callback()
     }
 
@@ -2239,7 +2312,7 @@ class WriteStream extends stream.Writable {
       return this.emit("error", new Error("Invalid data"))
     }
 
-    if (typeof this.fd !== "number") {
+    if (!lodash.isNumber(this.fd)) {
       return this.once("open", onOpen)
     }
 
@@ -2315,12 +2388,12 @@ function src(glob, opt) {
 const MASK_MODE$1 = parseInt("7777", 8)
 
 function mkdirp(dirpath, mode, callback) {
-  if (typeof mode === "function") {
+  if (lodash.isFunction(mode)) {
     callback = mode
     mode = undefined
   }
 
-  if (typeof mode === "string") {
+  if (lodash.isString(mode)) {
     mode = parseInt(mode, 8)
   }
 
@@ -2463,7 +2536,7 @@ function prepareWrite(folderResolver, optResolver) {
       return cb(new Error("Received a non-Vinyl object in `dest()`"))
     }
 
-    if (typeof file.isSymbolic !== "function") {
+    if (!lodash.isFunction(file.isSymbolic)) {
       file = new File(file)
     }
 
@@ -2501,7 +2574,7 @@ function sourcemapStream$1(optResolver) {
       return callback(null, file)
     }
 
-    const srcMapLocation = typeof srcMap === "string" ? srcMap : undefined
+    const srcMapLocation = lodash.isString(srcMap) ? srcMap : undefined
     sourcemap.write(file, srcMapLocation, onWrite)
 
     function onWrite(sourcemapErr, updatedFile, sourcemapFile) {
@@ -2627,7 +2700,7 @@ function writeStream(file, optResolver, onWritten) {
     }
 
     function complete() {
-      if (typeof fd !== "number") {
+      if (!lodash.isNumber(fd)) {
         return callback()
       }
 
@@ -2827,7 +2900,7 @@ function prepareSymlink(folderResolver, optResolver) {
       return cb(new Error("Received a non-Vinyl object in `symlink()`"))
     }
 
-    if (typeof file.isSymbolic !== "function") {
+    if (!lodash.isFunction(file.isSymbolic)) {
       file = new File(file)
     }
 
@@ -2950,7 +3023,7 @@ const defaultOpts = {
 }
 
 function listenerCount(ee, evtName) {
-  if (typeof ee.listenerCount === "function") {
+  if (lodash.isFunction(ee.listenerCount)) {
     return ee.listenerCount(evtName)
   }
 
@@ -2966,7 +3039,7 @@ function exists(val) {
 }
 
 function watch(glob, options, cb) {
-  if (typeof options === "function") {
+  if (lodash.isFunction(options)) {
     cb = options
     options = {}
   }
@@ -3046,7 +3119,7 @@ function watch(glob, options, cb) {
 
   let fn
 
-  if (typeof cb === "function") {
+  if (lodash.isFunction(cb)) {
     fn = debounce(onChange, opt.delay)
   }
 

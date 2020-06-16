@@ -1,15 +1,14 @@
 import * as path from "path"
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import testConstants from "./utils/test-constants"
 
-const pipe = miss.pipe
-const from = miss.from
-const concat = miss.concat
-const through = miss.through
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
+import through from "through2"
 
 const inputBase = testConstants.inputBase
 const inputPath = testConstants.inputPath
@@ -31,8 +30,8 @@ describe(".src()", () => {
     try {
       stream = vfs.src()
     } catch (err) {
-      expect(err).toExist()
-      expect(stream).toNotExist()
+      expect(err).to.exist
+      expect(stream).to.not.exist
       done()
     }
   })
@@ -42,8 +41,8 @@ describe(".src()", () => {
     try {
       stream = vfs.src("")
     } catch (err) {
-      expect(err).toExist()
-      expect(stream).toNotExist()
+      expect(err).to.exist
+      expect(stream).to.not.exist
       done()
     }
   })
@@ -53,8 +52,8 @@ describe(".src()", () => {
     try {
       stream = vfs.src(123)
     } catch (err) {
-      expect(err).toExist()
-      expect(stream).toNotExist()
+      expect(err).to.exist
+      expect(stream).to.not.exist
       done()
     }
   })
@@ -64,8 +63,8 @@ describe(".src()", () => {
     try {
       stream = vfs.src([["./fixtures/*.coffee"]])
     } catch (err) {
-      expect(err).toExist()
-      expect(stream).toNotExist()
+      expect(err).to.exist
+      expect(stream).to.not.exist
       expect(err.message).toInclude("Invalid glob argument")
       done()
     }
@@ -76,8 +75,8 @@ describe(".src()", () => {
     try {
       stream = vfs.src([""])
     } catch (err) {
-      expect(err).toExist()
-      expect(stream).toNotExist()
+      expect(err).to.exist
+      expect(stream).to.not.exist
       done()
     }
   })
@@ -87,15 +86,15 @@ describe(".src()", () => {
     try {
       stream = vfs.src([])
     } catch (err) {
-      expect(err).toExist()
-      expect(stream).toNotExist()
+      expect(err).to.exist
+      expect(stream).to.not.exist
       done()
     }
   })
 
   it("emits an error on file not existing", done => {
     function assert(err) {
-      expect(err).toExist()
+      expect(err).to.exist
       done()
     }
 
@@ -113,7 +112,7 @@ describe(".src()", () => {
     const srcStream = vfs.src(inputPath)
 
     function assert(files) {
-      expect(files.length).toEqual(2)
+      expect(files.length).to.equal(2)
       expect(files[0]).toEqual(file)
     }
 
@@ -126,7 +125,7 @@ describe(".src()", () => {
     const expectedContent = new Buffer(bomContents.replace("X", "8"))
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -140,15 +139,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -165,7 +164,7 @@ describe(".src()", () => {
     const expectedContent = new Buffer(`\ufeff${bomContents.replace("X", "8")}`)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -179,15 +178,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -204,7 +203,7 @@ describe(".src()", () => {
     const expectedContent = new Buffer(bomContents.replace("X", "16-BE"))
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -218,15 +217,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -243,7 +242,7 @@ describe(".src()", () => {
     const expectedContent = new Buffer(`\ufeff${bomContents.replace("X", "16-BE")}`)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -263,15 +262,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -288,7 +287,7 @@ describe(".src()", () => {
     const expectedContent = new Buffer(bomContents.replace("X", "16-LE"))
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -302,15 +301,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -327,7 +326,7 @@ describe(".src()", () => {
     const expectedContent = new Buffer(`\ufeff${bomContents.replace("X", "16-LE")}`)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -347,15 +346,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -374,7 +373,7 @@ describe(".src()", () => {
     const expectedContent = fs.readFileSync(beNotBomInputPath)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -388,15 +387,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -415,7 +414,7 @@ describe(".src()", () => {
     const expectedContent = fs.readFileSync(leNotBomInputPath)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContent)
     }
 
@@ -429,15 +428,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -454,7 +453,7 @@ describe(".src()", () => {
     const expectedContents = fs.readFileSync(ranBomInputPath)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContents)
     }
 
@@ -468,15 +467,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContents)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -493,7 +492,7 @@ describe(".src()", () => {
     const expectedContents = fs.readFileSync(bomInputPath)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContents)
     }
 
@@ -507,15 +506,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContents)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -532,7 +531,7 @@ describe(".src()", () => {
     const expectedContents = new Buffer(encodedContents)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].contents).toMatch(expectedContents)
     }
 
@@ -546,15 +545,15 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContents)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -569,12 +568,12 @@ describe(".src()", () => {
 
   it("reports unsupported encoding errors (buffer)", done => {
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     function finish(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Unsupported encoding: fubar42")
+      expect(err).to.exist
+      expect(err.message).to.equal("Unsupported encoding: fubar42")
       done()
     }
 
@@ -583,12 +582,12 @@ describe(".src()", () => {
 
   it("reports unsupported encoding errors (stream)", done => {
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     function finish(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Unsupported encoding: fubar42")
+      expect(err).to.exist
+      expect(err.message).to.equal("Unsupported encoding: fubar42")
       done()
     }
 
@@ -600,7 +599,7 @@ describe(".src()", () => {
 
   it("globs files with default settings", done => {
     function assert({ length }) {
-      expect(length).toEqual(7)
+      expect(length).to.equal(7)
     }
 
     pipe([vfs.src("./fixtures/*.txt", { cwd: __dirname }), concat(assert)], done)
@@ -610,7 +609,7 @@ describe(".src()", () => {
     const cwd = path.relative(process.cwd(), __dirname)
 
     function assert({ length }) {
-      expect(length).toEqual(7)
+      expect(length).to.equal(7)
     }
 
     pipe([vfs.src("./fixtures/*.txt", { cwd }), concat(assert)], done)
@@ -621,9 +620,9 @@ describe(".src()", () => {
     const inputDirGlob = path.join(inputBase, "./f*/")
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isNull()).toEqual(true)
-      expect(files[0].isDirectory()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isNull()).to.be.true
+      expect(files[0].isDirectory()).to.be.true
     }
 
     pipe([vfs.src(inputDirGlob), concat(assert)], done)
@@ -633,9 +632,9 @@ describe(".src()", () => {
     const cwd = path.relative(process.cwd(), __dirname)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isNull()).toEqual(true)
-      expect(files[0].isDirectory()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isNull()).to.be.true
+      expect(files[0].isDirectory()).to.be.true
     }
 
     pipe([vfs.src("./fixtures/f*/", { cwd }), concat(assert)], done)
@@ -643,10 +642,10 @@ describe(".src()", () => {
 
   it("streams a directory with default settings", done => {
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].path).toEqual(inputDirpath)
-      expect(files[0].isNull()).toEqual(true)
-      expect(files[0].isDirectory()).toEqual(true)
+      expect(files[0].isNull()).to.be.true
+      expect(files[0].isDirectory()).to.be.true
     }
 
     pipe([vfs.src(inputDirpath), concat(assert)], done)
@@ -654,10 +653,10 @@ describe(".src()", () => {
 
   it("streams file with with no contents using read: false option", done => {
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].path).toEqual(inputPath)
-      expect(files[0].isNull()).toEqual(true)
-      expect(files[0].contents).toNotExist()
+      expect(files[0].isNull()).to.be.true
+      expect(files[0].contents).to.not.exist
     }
 
     pipe([vfs.src(inputPath, { read: false }), concat(assert)], done)
@@ -667,7 +666,7 @@ describe(".src()", () => {
     const lastUpdateDate = new Date(+fs.statSync(inputPath).mtime - 1000)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].path).toEqual(inputPath)
     }
 
@@ -678,7 +677,7 @@ describe(".src()", () => {
     const lastUpdateDate = new Date(+fs.statSync(inputPath).mtime + 1000)
 
     function assert({ length }) {
-      expect(length).toEqual(0)
+      expect(length).to.equal(0)
     }
 
     pipe([vfs.src(inputPath, { since: lastUpdateDate }), concat(assert)], done)
@@ -691,16 +690,16 @@ describe(".src()", () => {
       expect(contents).toMatch(expectedContent)
     }
 
-    function compareContents(file, enc, cb) {
+    function compareContents(file, cb) {
       pipe([file.contents, concat(assertContent)], err => {
         cb(err, file)
       })
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].path).toEqual(inputPath)
-      expect(files[0].isStream()).toEqual(true)
+      expect(files[0].isStream()).to.be.true
     }
 
     pipe(
@@ -722,7 +721,7 @@ describe(".src()", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(2)
+      expect(files.length).to.equal(2)
       expect(files[0]).toEqual(file)
     }
 
@@ -731,7 +730,7 @@ describe(".src()", () => {
 
   it("can be used at beginning and in the middle", done => {
     function assert({ length }) {
-      expect(length).toEqual(2)
+      expect(length).to.equal(2)
     }
 
     pipe([vfs.src(inputPath), vfs.src(inputPath), concat(assert)], done)
@@ -743,7 +742,7 @@ describe(".src()", () => {
 
     function assert() {
       // Called once to resolve the option
-      expect(read.calls.length).toEqual(1)
+      expect(read.calls.length).to.equal(1)
     }
 
     pipe([vfs.src(inputPath, { read }), concat(assert)], done)

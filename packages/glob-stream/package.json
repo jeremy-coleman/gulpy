@@ -11,11 +11,7 @@
   "license": "MIT",
   "main": "index.ts",
   "scripts": {
-    "lint": "eslint . && jscs index.js readable.js test/",
-    "pretest": "npm run lint",
-    "test": "mocha --async-only",
-    "cover": "istanbul cover _mocha --report lcovonly",
-    "coveralls": "npm run cover && istanbul-coveralls"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
     "glob": "^7.1.6",
@@ -27,9 +23,6 @@
     "remove-trailing-separator": "^1.1.0",
     "to-absolute-glob": "^2.0.2",
     "unique-stream": "^2.3.1"
-  },
-  "devDependencies": {
-    "mocha": "^8.0.1"
   },
   "keywords": [
     "glob",

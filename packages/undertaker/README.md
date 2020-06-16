@@ -15,8 +15,8 @@ Task registry that allows composition through `series`/`parallel` methods.
 ## Usage
 
 ```js
-import fs from "fs"
-import Undertaker from "undertaker"
+import * as fs from "fs"
+import * as Undertaker from "undertaker"
 
 const taker = new Undertaker()
 
@@ -177,7 +177,7 @@ prototype and it will receive the `Undertaker` instance as the only argument. Yo
 For example you might want to share a `clean` task:
 
 ```js
-import fs from "fs"
+import * as fs from "fs"
 
 import { DefaultRegistry } from "undertaker-registry"
 import del from "del"

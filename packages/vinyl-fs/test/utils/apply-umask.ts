@@ -1,5 +1,7 @@
+import { isNumber } from "lodash"
+
 function applyUmask(mode) {
-  if (typeof mode !== "number") {
+  if (!isNumber(mode)) {
     mode = parseInt(mode, 8)
   }
 

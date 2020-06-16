@@ -3,13 +3,14 @@ import * as path from "path"
 import { pipeline } from "stream"
 import * as fs from "fs"
 import mock from "jest-mock"
-import expect from "expect"
+import { expect } from "chai"
 import rimraf from "rimraf"
 import streamx from "stream"
 const Readable = streamx.Readable
 const Writable = streamx.Writable
 
 import mkdirpStream from "../"
+import { isNumber } from "lodash"
 
 describe("mkdirpStream", () => {
   const MASK_MODE = parseInt("7777", 8)
@@ -36,7 +37,7 @@ describe("mkdirpStream", () => {
   }
 
   function applyUmask(mode) {
-    if (typeof mode !== "number") {
+    if (!isNumber(mode)) {
       mode = parseInt(mode, 8)
     }
 
@@ -64,7 +65,7 @@ describe("mkdirpStream", () => {
   })
 
   it("exports a main function", done => {
-    expect(typeof mkdirpStream).toEqual("function")
+    expect(mkdirpStream).to.be.a("function")
     done()
   })
 
@@ -127,7 +128,7 @@ describe("mkdirpStream", () => {
 
     function assert(err) {
       expect(err).toBeDefined()
-      expect(notExists).toThrow()
+      expect(notExists).to.throw()
       done()
     }
 
@@ -136,7 +137,7 @@ describe("mkdirpStream", () => {
 
   it("works with objectMode", done => {
     function resolver(chunk, cb) {
-      expect(typeof chunk).toEqual("object")
+      expect(chunk).to.be.a("object")
       expect(chunk.dirname).toBeDefined()
       cb(null, chunk.dirname)
     }
@@ -165,7 +166,7 @@ describe("mkdirpStream", () => {
 
     function assert(err) {
       expect(err).toBeDefined()
-      expect(notExists).toThrow()
+      expect(notExists).to.throw()
       done()
     }
 

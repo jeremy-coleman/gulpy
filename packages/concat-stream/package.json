@@ -1,0 +1,24 @@
+{
+  "name": "concat-stream",
+  "version": "2.0.0",
+  "description": "writable stream that concatenates strings or binary data and calls a callback with the result",
+  "tags": [
+    "stream",
+    "simple",
+    "util",
+    "utility"
+  ],
+  "author": "Max Ogden <max@maxogden.com>",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/maxogden/concat-stream.git"
+  },
+  "bugs": {
+    "url": "http://github.com/maxogden/concat-stream/issues"
+  },
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "license": "MIT"
+}

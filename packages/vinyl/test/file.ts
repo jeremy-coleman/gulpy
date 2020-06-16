@@ -2,9 +2,12 @@ import * as fs from "fs"
 import * as path from "path"
 import * as util from "util"
 import { expect } from "chai"
-import { pipe, from, concat } from "./mississippi"
 import cloneable from "cloneable-readable"
 import File from "../index"
+
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const isCloneable = cloneable.isCloneable
 

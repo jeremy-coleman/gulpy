@@ -2,7 +2,7 @@ import * as fs from "fs"
 import { date } from "value-or-function"
 import { Writable } from "readable-stream"
 import * as constants from "./constants"
-import { isNumber } from "lodash"
+import { isNumber, isFunction } from "lodash"
 
 const APPEND_MODE_REGEXP = /a/
 
@@ -65,7 +65,7 @@ function isFatalUnlinkError(err) {
 function getModeDiff(fsMode, vinylMode) {
   let modeDiff = 0
 
-  if (typeof vinylMode === "number") {
+  if (isNumber(vinylMode)) {
     modeDiff = (vinylMode ^ fsMode) & constants.MASK_MODE
   }
 
@@ -130,8 +130,8 @@ function getOwnerDiff(fsStat, vinylStat) {
 }
 
 function isOwner(fsStat) {
-  const hasGetuid = typeof process.getuid === "function"
-  const hasGeteuid = typeof process.geteuid === "function"
+  const hasGetuid = isFunction(process.getuid)
+  const hasGeteuid = isFunction(process.geteuid)
 
   // If we don't have either, assume we don't have permissions.
   // This should only happen on Windows.
@@ -300,7 +300,7 @@ function symlink(srcPath, destPath, { flags, type }, callback) {
   Most of the implementation taken from node core.
  */
 function writeFile(filepath, data, options, callback) {
-  if (typeof options === "function") {
+  if (isFunction(options)) {
     callback = options
     options = {}
   }
@@ -350,7 +350,7 @@ class WriteStream extends Writable {
   constructor(path, options, flush) {
     // Not exposed so we can avoid the case where someone doesn't use `new`
 
-    if (typeof options === "function") {
+    if (isFunction(options)) {
       flush = options
       options = null
     }
@@ -400,8 +400,8 @@ class WriteStream extends Writable {
       this.once("close", cb)
     }
 
-    if (this.closed || typeof this.fd !== "number") {
-      if (typeof this.fd !== "number") {
+    if (this.closed || !isNumber(this.fd)) {
+      if (!isNumber(this.fd)) {
         this.once("open", closeOnOpen)
         return
       }
@@ -425,7 +425,7 @@ class WriteStream extends Writable {
   }
 
   _final(callback) {
-    if (typeof this.flush !== "function") {
+    if (!isFunction(this.flush)) {
       return callback()
     }
 
@@ -438,7 +438,7 @@ class WriteStream extends Writable {
       return this.emit("error", new Error("Invalid data"))
     }
 
-    if (typeof this.fd !== "number") {
+    if (!isNumber(this.fd)) {
       return this.once("open", onOpen)
     }
 

@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import * as path from "path"
-import expect from "expect"
+import { expect } from "chai"
 import rimraf from "rimraf"
 import through from "through2"
 import normalizePath from "normalize-path"
@@ -109,7 +109,7 @@ describe("glob-watcher", () => {
       runs++
       if (runs === 1) {
         setTimeout(() => {
-          expect(runs).toEqual(1)
+          expect(runs).to.equal(1)
           cb()
         }, timeout * 3)
       }
@@ -137,7 +137,7 @@ describe("glob-watcher", () => {
       if (runs === 1) {
         const stream = through()
         setTimeout(() => {
-          expect(runs).toEqual(1)
+          expect(runs).to.equal(1)
           stream.end()
         }, timeout * 3)
         return stream
@@ -191,7 +191,7 @@ describe("glob-watcher", () => {
       runs++
       setTimeout(() => {
         // Expect 1 because run 2 is never queued
-        expect(runs).toEqual(1)
+        expect(runs).to.equal(1)
         cb()
         done()
       }, timeout * 3)
@@ -212,12 +212,12 @@ describe("glob-watcher", () => {
       runs++
       if (runs === 1) {
         setTimeout(() => {
-          expect(runs).toEqual(1)
+          expect(runs).to.equal(1)
           cb()
         }, timeout * 3)
       }
       if (runs === 2) {
-        expect(runs).toEqual(2)
+        expect(runs).to.equal(2)
         cb()
         done()
       }
@@ -282,7 +282,7 @@ describe("glob-watcher", () => {
 
     watcher.once("change", filepath => {
       // It should never reach here
-      expect(filepath).toNotExist()
+      expect(filepath).to.not.exist
       done()
     })
 
@@ -323,7 +323,7 @@ describe("glob-watcher", () => {
 
     watcher.once("change", filepath => {
       // It should never reach here
-      expect(filepath).toNotExist()
+      expect(filepath).to.not.exist
       done()
     })
 
@@ -331,7 +331,7 @@ describe("glob-watcher", () => {
     watcher.on("ready", changeFile)
 
     // Just test the non-mutation in this test
-    expect(ignored.length).toEqual(1)
+    expect(ignored.length).to.equal(1)
 
     setTimeout(done, 1500)
   })

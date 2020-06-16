@@ -1,15 +1,16 @@
 import * as path from "path"
 import * as fs from "fs"
+import { isFunction, isString } from "lodash"
 
 const MASK_MODE = parseInt("7777", 8)
 
 function mkdirp(dirpath, mode, callback) {
-  if (typeof mode === "function") {
+  if (isFunction(mode)) {
     callback = mode
     mode = undefined
   }
 
-  if (typeof mode === "string") {
+  if (isString(mode)) {
     mode = parseInt(mode, 8)
   }
 

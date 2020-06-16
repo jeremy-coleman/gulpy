@@ -1,8 +1,7 @@
 import * as path from "path"
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import isWindows from "./utils/is-windows"
@@ -11,9 +10,9 @@ import always from "./utils/always"
 import testConstants from "./utils/test-constants"
 import breakPrototype from "./utils/break-prototype"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const count = testStreams.count
 const slowCount = testStreams.slowCount
@@ -40,7 +39,7 @@ describe("symlink stream", () => {
       vfs.symlink()
     }
 
-    expect(noFolder).toThrow(
+    expect(noFolder).to.throw(
       "Invalid symlink() folder argument. Please specify a non-empty string or a function."
     )
     done()
@@ -51,7 +50,7 @@ describe("symlink stream", () => {
       vfs.symlink("")
     }
 
-    expect(emptyFolder).toThrow(
+    expect(emptyFolder).to.throw(
       "Invalid symlink() folder argument. Please specify a non-empty string or a function."
     )
     done()
@@ -65,7 +64,7 @@ describe("symlink stream", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].cwd).toEqual(__dirname, "cwd should have changed")
     }
@@ -84,7 +83,7 @@ describe("symlink stream", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].cwd).toEqual(process.cwd(), "cwd should not have changed")
     }
@@ -104,7 +103,7 @@ describe("symlink stream", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -126,7 +125,7 @@ describe("symlink stream", () => {
     })
 
     function outputFn(f) {
-      expect(f).toExist()
+      expect(f).to.exist
       expect(f).toEqual(file)
       return outputRelative
     }
@@ -134,7 +133,7 @@ describe("symlink stream", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -156,7 +155,7 @@ describe("symlink stream", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -178,7 +177,7 @@ describe("symlink stream", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -207,7 +206,7 @@ describe("symlink stream", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -227,8 +226,8 @@ describe("symlink stream", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
-      expect(files[0].isSymbolic()).toEqual(true)
+      expect(files.length).to.equal(1)
+      expect(files[0].isSymbolic()).to.be.true
     }
 
     pipe([from.obj([file]), vfs.symlink(outputBase), concat(assert)], done)
@@ -254,14 +253,14 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       expect(files[0].symlink).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(inputDirpath)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe([from.obj([file]), vfs.symlink(outputBase), concat(assert)], done)
@@ -287,15 +286,15 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       // When creating a junction, it seems Windows appends a separator
       expect(files[0].symlink + path.sep).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(inputDirpath + path.sep)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe([from.obj([file]), vfs.symlink(outputBase), concat(assert)], done)
@@ -321,14 +320,14 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       expect(files[0].symlink).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(inputDirpath)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -357,7 +356,7 @@ describe("symlink stream", () => {
     })
 
     function useJunctions(f) {
-      expect(f).toExist()
+      expect(f).to.exist
       expect(f).toBe(file)
       return false
     }
@@ -367,14 +366,14 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       expect(files[0].symlink).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(inputDirpath)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -403,14 +402,14 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       expect(files[0].symlink).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(path.normalize("../fixtures/foo"))
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -443,15 +442,15 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       // When creating a junction, it seems Windows appends a separator
       expect(files[0].symlink + path.sep).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(inputDirpath + path.sep)
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -479,7 +478,7 @@ describe("symlink stream", () => {
     function assert(files) {
       const outputLink = fs.readlinkSync(outputPath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputPath, "path should have changed")
@@ -517,14 +516,14 @@ describe("symlink stream", () => {
       const lstats = fs.lstatSync(outputDirpath)
       const outputLink = fs.readlinkSync(outputDirpath)
 
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files).toInclude(file)
       expect(files[0].base).toEqual(outputBase, "base should have changed")
       expect(files[0].path).toEqual(outputDirpath, "path should have changed")
       expect(files[0].symlink).toEqual(outputLink, "symlink should be set")
       expect(outputLink).toEqual(path.normalize("../fixtures/foo"))
-      expect(stats.isDirectory()).toEqual(true)
-      expect(lstats.isDirectory()).toEqual(false)
+      expect(stats.isDirectory()).to.be.true
+      expect(lstats.isDirectory()).to.be.false
     }
 
     pipe(
@@ -555,7 +554,7 @@ describe("symlink stream", () => {
     fs.chmodSync(outputBase, 0)
 
     function assert({ code }) {
-      expect(code).toEqual("EACCES")
+      expect(code).to.equal("EACCES")
       done()
     }
 
@@ -574,7 +573,7 @@ describe("symlink stream", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents)
     }
 
@@ -600,7 +599,7 @@ describe("symlink stream", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(contents)
     }
 
@@ -631,7 +630,7 @@ describe("symlink stream", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(existingContents)
     }
 
@@ -659,7 +658,7 @@ describe("symlink stream", () => {
     function assert({ length }) {
       const outputContents = fs.readFileSync(outputPath, "utf8")
 
-      expect(length).toEqual(1)
+      expect(length).to.equal(1)
       expect(outputContents).toEqual(contents)
     }
 
@@ -702,8 +701,8 @@ describe("symlink stream", () => {
     const file = {}
 
     function assert(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Received a non-Vinyl object in `symlink()`")
+      expect(err).to.exist
+      expect(err.message).to.equal("Received a non-Vinyl object in `symlink()`")
       done()
     }
 
@@ -714,8 +713,8 @@ describe("symlink stream", () => {
     const file = new Buffer("test")
 
     function assert(err) {
-      expect(err).toExist()
-      expect(err.message).toEqual("Received a non-Vinyl object in `symlink()`")
+      expect(err).to.exist
+      expect(err.message).to.equal("Received a non-Vinyl object in `symlink()`")
       done()
     }
 
@@ -790,7 +789,7 @@ describe("symlink stream", () => {
     })
 
     function assert(err) {
-      expect(readables).toEqual(1)
+      expect(readables).to.equal(1)
       done(err)
     }
 
@@ -812,7 +811,7 @@ describe("symlink stream", () => {
     })
 
     function assert(err) {
-      expect(datas).toEqual(1)
+      expect(datas).to.equal(1)
       done(err)
     }
 
@@ -895,7 +894,7 @@ describe("symlink stream", () => {
 
     function assert() {
       // Called never because it's not a valid option
-      expect(read.calls.length).toEqual(0)
+      expect(read.calls.length).to.equal(0)
     }
 
     pipe([from.obj([file]), vfs.symlink(outputBase, { read }), concat(assert)], done)
@@ -908,7 +907,7 @@ describe("symlink stream", () => {
     })
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // Avoid comparing stats because they get reflected
       delete files[0].stat
       expect(files[0]).toMatch(file)
@@ -929,7 +928,7 @@ describe("symlink stream", () => {
     breakPrototype(file)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // Avoid comparing stats because they get reflected
       delete files[0].stat
       expect(files[0]).toMatch(file)

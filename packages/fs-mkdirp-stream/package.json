@@ -10,9 +10,7 @@
   "license": "MIT",
   "main": "index.ts",
   "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "nyc mocha --async-only"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {},
   "devDependencies": {

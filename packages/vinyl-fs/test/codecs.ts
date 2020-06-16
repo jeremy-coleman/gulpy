@@ -1,10 +1,9 @@
 import * as fs from "fs"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 import getCodec from "../lib/codecs"
 import { DEFAULT_ENCODING } from "../lib/constants"
@@ -19,13 +18,13 @@ const encodedContents = testConstants.encodedContents
 
 describe("codecs", () => {
   it("exports a function", done => {
-    expect(typeof getCodec).toEqual("function")
+    expect(getCodec).to.be.a("function")
     done()
   })
 
   it("returns undefined for unsupported encoding", done => {
     const codec = getCodec("fubar42")
-    expect(codec).toBe(undefined)
+    expect(codec).to.be.undefined
     done()
   })
 
@@ -33,14 +32,14 @@ describe("codecs", () => {
     const codec = getCodec(DEFAULT_ENCODING)
     testCodec(codec)
     expect(codec.enc).toEqual(DEFAULT_ENCODING)
-    expect(codec.bomAware).toBe(true)
+    expect(codec.bomAware).to.be.true
     done()
   })
 
   it("returns a proper codec for utf16be", done => {
     const codec = getCodec("utf16be")
     testCodec(codec)
-    expect(codec.bomAware).toBe(true)
+    expect(codec.bomAware).to.be.true
     done()
   })
 
@@ -49,8 +48,8 @@ describe("codecs", () => {
     const expected = notBomContents.replace("X", "BE")
 
     const result = codec.decode(fs.readFileSync(beNotBomInputPath))
-    expect(result).toExist()
-    expect(typeof result).toEqual("string")
+    expect(result).to.exist
+    expect(result).to.be.a("string")
     expect(result.slice(2)).toEqual(expected) // Ignore leading garbage
     done()
   })
@@ -60,8 +59,8 @@ describe("codecs", () => {
     const expected = notBomContents.replace("X", "BE")
 
     function assert(result) {
-      expect(result).toExist()
-      expect(typeof result).toEqual("string")
+      expect(result).to.exist
+      expect(result).to.be.a("string")
       expect(result.slice(2)).toEqual(expected) // Ignore leading garbage
     }
 
@@ -76,9 +75,9 @@ describe("codecs", () => {
     const expected = fs.readFileSync(beNotBomInputPath)
 
     const result = codec.encode(notBomContents.replace("X", "BE"))
-    expect(result).toExist()
-    expect(typeof result).toEqual("object")
-    expect(Buffer.isBuffer(result)).toBe(true)
+    expect(result).to.exist
+    expect(result).to.be.a("object")
+    expect(Buffer.isBuffer(result)).to.be.true
     expect(result).toMatch(expected.slice(4)) // Ignore leading garbage
     done()
   })
@@ -88,9 +87,9 @@ describe("codecs", () => {
     const expected = fs.readFileSync(beNotBomInputPath)
 
     function assert(result) {
-      expect(result).toExist()
-      expect(typeof result).toEqual("object")
-      expect(Buffer.isBuffer(result)).toBe(true)
+      expect(result).to.exist
+      expect(result).to.be.a("object")
+      expect(Buffer.isBuffer(result)).to.be.true
       expect(result).toMatch(expected.slice(4)) // Ignore leading garbage
     }
 
@@ -107,7 +106,7 @@ describe("codecs", () => {
   it("returns a proper codec for utf16le", done => {
     const codec = getCodec("utf16le")
     testCodec(codec)
-    expect(codec.bomAware).toBe(true)
+    expect(codec.bomAware).to.be.true
     done()
   })
 
@@ -116,8 +115,8 @@ describe("codecs", () => {
     const expected = notBomContents.replace("X", "LE")
 
     const result = codec.decode(fs.readFileSync(leNotBomInputPath))
-    expect(result).toExist()
-    expect(typeof result).toEqual("string")
+    expect(result).to.exist
+    expect(result).to.be.a("string")
     expect(result.slice(2)).toEqual(expected) // Ignore leading garbage
     done()
   })
@@ -127,8 +126,8 @@ describe("codecs", () => {
     const expected = notBomContents.replace("X", "LE")
 
     function assert(result) {
-      expect(result).toExist()
-      expect(typeof result).toEqual("string")
+      expect(result).to.exist
+      expect(result).to.be.a("string")
       expect(result.slice(2)).toEqual(expected) // Ignore leading garbage
     }
 
@@ -143,9 +142,9 @@ describe("codecs", () => {
     const expected = fs.readFileSync(leNotBomInputPath)
 
     const result = codec.encode(notBomContents.replace("X", "LE"))
-    expect(result).toExist()
-    expect(typeof result).toEqual("object")
-    expect(Buffer.isBuffer(result)).toBe(true)
+    expect(result).to.exist
+    expect(result).to.be.a("object")
+    expect(Buffer.isBuffer(result)).to.be.true
     expect(result).toMatch(expected.slice(4)) // Ignore leading garbage
     done()
   })
@@ -155,9 +154,9 @@ describe("codecs", () => {
     const expected = fs.readFileSync(leNotBomInputPath)
 
     function assert(result) {
-      expect(result).toExist()
-      expect(typeof result).toEqual("object")
-      expect(Buffer.isBuffer(result)).toBe(true)
+      expect(result).to.exist
+      expect(result).to.be.a("object")
+      expect(Buffer.isBuffer(result)).to.be.true
       expect(result).toMatch(expected.slice(4)) // Ignore leading garbage
     }
 

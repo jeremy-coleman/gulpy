@@ -1,5 +1,5 @@
 import rimraf from "rimraf"
-import expect from "expect"
+import { expect } from "chai"
 
 function cleanup(glob) {
   return function (cb) {

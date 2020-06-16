@@ -1,0 +1,15 @@
+{
+  "name": "ordered-read-streams",
+  "version": "1.0.1",
+  "description": "Combines array of streams into one read stream in strict order",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "repository": "armed/ordered-read-streams",
+  "author": "Artem Medeusheyev <artem.medeusheyev@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.0.1"
+  }
+}

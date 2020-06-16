@@ -1,9 +1,8 @@
-import miss from "mississippi"
-import expect from "expect"
+import { expect } from "chai"
 
-const to = miss.to
-const from = miss.from
-const through = miss.through
+import from from "from2"
+import through from "through2"
+import to from "flush-write-stream"
 
 function string(length) {
   return from((size, next) => {

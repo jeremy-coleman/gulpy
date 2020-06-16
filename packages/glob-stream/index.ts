@@ -1,10 +1,49 @@
 import Combine from "ordered-read-streams"
 import unique from "unique-stream"
-import pumpify from "pumpify"
+import * as pumpify from "pumpify"
 import isNegatedGlob from "is-negated-glob"
 import GlobStream from "./readable"
+import { isString, isBoolean, isFunction } from "lodash"
+import type * as glob from "glob"
 
-function globStream(globs, opt) {
+export interface Entry {
+  cwd: string
+  base: string
+  path: string
+}
+
+export type UniqueByStringPredicate = "cwd" | "base" | "path"
+export type UniqueByFunctionPredicate = (entry: Entry) => string
+
+export interface Options extends glob.IOptions {
+  /**
+   * Whether or not to error upon an empty singular glob.
+   */
+  allowEmpty?: boolean
+  /**
+   * The absolute segment of the glob path that isn't a glob. This value is attached
+   * to each globObject and is useful for relative pathing.
+   */
+  base?: string
+  /**
+   * Whether or not the `cwd` and `base` should be the same.
+   */
+  cwdbase?: boolean
+  /**
+   * Filters stream to remove duplicates based on the string property name or the result of function.
+   * When using a function, the function receives the streamed
+   * data (objects containing `cwd`, `base`, `path` properties) to compare against.
+   */
+  uniqueBy?: UniqueByStringPredicate | UniqueByFunctionPredicate
+}
+
+// Type definitions for glob-stream v6.1.0
+// Project: https://github.com/wearefractal/glob-stream
+// Definitions by: Bart van der Schoor <https://github.com/Bartvds>
+//                 mrmlnc <https://github.com/mrmlnc>
+// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
+
+function globStream(globs: string | string[], opt?: Options) {
   if (!opt) {
     opt = {}
   }
@@ -12,20 +51,18 @@ function globStream(globs, opt) {
   const ourOpt = Object.assign({}, opt)
   let ignore = ourOpt.ignore
 
-  ourOpt.cwd = typeof ourOpt.cwd === "string" ? ourOpt.cwd : process.cwd()
-  ourOpt.dot = typeof ourOpt.dot === "boolean" ? ourOpt.dot : false
-  ourOpt.silent = typeof ourOpt.silent === "boolean" ? ourOpt.silent : true
-  ourOpt.cwdbase = typeof ourOpt.cwdbase === "boolean" ? ourOpt.cwdbase : false
+  ourOpt.cwd = isString(ourOpt.cwd) ? ourOpt.cwd : process.cwd()
+  ourOpt.dot = isBoolean(ourOpt.dot) ? ourOpt.dot : false
+  ourOpt.silent = isBoolean(ourOpt.silent) ? ourOpt.silent : true
+  ourOpt.cwdbase = isBoolean(ourOpt.cwdbase) ? ourOpt.cwdbase : false
   ourOpt.uniqueBy =
-    typeof ourOpt.uniqueBy === "string" || typeof ourOpt.uniqueBy === "function"
-      ? ourOpt.uniqueBy
-      : "path"
+    isString(ourOpt.uniqueBy) || isFunction(ourOpt.uniqueBy) ? ourOpt.uniqueBy : "path"
 
   if (ourOpt.cwdbase) {
     ourOpt.base = ourOpt.cwd
   }
   // Normalize string `ignore` to array
-  if (typeof ignore === "string") {
+  if (isString(ignore)) {
     ignore = [ignore]
   }
   // Ensure `ignore` is an array
@@ -44,7 +81,7 @@ function globStream(globs, opt) {
   globs.forEach(sortGlobs)
 
   function sortGlobs(globString, index) {
-    if (typeof globString !== "string") {
+    if (!isString(globString)) {
       throw new Error(`Invalid glob at index ${index}`)
     }
 

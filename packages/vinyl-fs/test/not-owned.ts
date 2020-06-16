@@ -1,15 +1,14 @@
 import * as fs from "fs"
 import File from "vinyl"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import applyUmask from "./utils/apply-umask"
 import testConstants from "./utils/test-constants"
 
-const from = miss.from
-const pipe = miss.pipe
-const concat = miss.concat
+import from from "from2"
+import concat from "concat-stream"
+import pipe from "pump"
 
 const notOwnedBase = testConstants.notOwnedBase
 const notOwnedPath = testConstants.notOwnedPath
@@ -68,7 +67,7 @@ describe(".dest() on not owned files", () => {
     })
 
     function assert() {
-      expect(futimesSpy.calls.length).toEqual(0)
+      expect(futimesSpy.calls.length).to.equal(0)
     }
 
     pipe([from.obj([file]), vfs.dest(notOwnedBase), concat(assert)], done)
@@ -92,7 +91,7 @@ describe(".dest() on not owned files", () => {
     })
 
     function assert() {
-      expect(fchmodSpy.calls.length).toEqual(0)
+      expect(fchmodSpy.calls.length).to.equal(0)
     }
 
     pipe([from.obj([file]), vfs.dest(notOwnedBase), concat(assert)], done)

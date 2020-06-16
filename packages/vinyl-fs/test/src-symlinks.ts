@@ -1,12 +1,11 @@
 import * as fs from "fs"
-import expect from "expect"
-import miss from "mississippi"
+import { expect } from "chai"
 import * as vfs from "../"
 import cleanup from "./utils/cleanup"
 import testConstants from "./utils/test-constants"
 
-const pipe = miss.pipe
-const concat = miss.concat
+import concat from "concat-stream"
+import pipe from "pump"
 
 const outputBase = testConstants.outputBase
 const inputPath = testConstants.inputPath
@@ -40,14 +39,14 @@ describe(".src() with symlinks", () => {
 
   it("resolves symlinks correctly", done => {
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // The path should be the symlink itself
       expect(files[0].path).toEqual(symlinkNestedFirst)
       // But the content should be what's in the actual file
-      expect(files[0].contents.toString()).toEqual("symlink works\n")
+      expect(files[0].contents.toString()).to.equal("symlink works\n")
       // And the stats should have been updated
-      expect(files[0].stat.isSymbolicLink()).toEqual(false)
-      expect(files[0].stat.isFile()).toEqual(true)
+      expect(files[0].stat.isSymbolicLink()).to.be.false
+      expect(files[0].stat.isFile()).to.be.true
     }
 
     pipe([vfs.src(symlinkNestedFirst), concat(assert)], done)
@@ -55,14 +54,14 @@ describe(".src() with symlinks", () => {
 
   it("resolves directory symlinks correctly", done => {
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // The path should be the symlink itself
       expect(files[0].path).toEqual(symlinkDirpath)
       // But the contents should be null
       expect(files[0].contents).toEqual(null)
       // And the stats should have been updated
-      expect(files[0].stat.isSymbolicLink()).toEqual(false)
-      expect(files[0].stat.isDirectory()).toEqual(true)
+      expect(files[0].stat.isSymbolicLink()).to.be.false
+      expect(files[0].stat.isDirectory()).to.be.true
     }
 
     pipe([vfs.src(symlinkDirpath), concat(assert)], done)
@@ -70,14 +69,14 @@ describe(".src() with symlinks", () => {
 
   it("resolves nested symlinks to directories correctly", done => {
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // The path should be the symlink itself
       expect(files[0].path).toEqual(symlinkMultiDirpathSecond)
       // But the contents should be null
       expect(files[0].contents).toEqual(null)
       // And the stats should have been updated
-      expect(files[0].stat.isSymbolicLink()).toEqual(false)
-      expect(files[0].stat.isDirectory()).toEqual(true)
+      expect(files[0].stat.isSymbolicLink()).to.be.false
+      expect(files[0].stat.isDirectory()).to.be.true
     }
 
     pipe([vfs.src(symlinkMultiDirpathSecond), concat(assert)], done)
@@ -87,7 +86,7 @@ describe(".src() with symlinks", () => {
     const expectedRelativeSymlinkPath = fs.readlinkSync(symlinkPath)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].path).toEqual(symlinkPath)
       expect(files[0].symlink).toEqual(expectedRelativeSymlinkPath)
     }
@@ -99,7 +98,7 @@ describe(".src() with symlinks", () => {
     const expectedRelativeSymlinkPath = fs.readlinkSync(symlinkDirpath)
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       expect(files[0].path).toEqual(symlinkDirpath)
       expect(files[0].symlink).toEqual(expectedRelativeSymlinkPath)
     }
@@ -109,18 +108,18 @@ describe(".src() with symlinks", () => {
 
   it("receives a file with symbolic link stats when resolveSymlinks is a function", done => {
     function resolveSymlinks(file) {
-      expect(file).toExist()
-      expect(file.stat).toExist()
-      expect(file.stat.isSymbolicLink()).toEqual(true)
+      expect(file).to.exist
+      expect(file.stat).to.exist
+      expect(file.stat.isSymbolicLink()).to.be.true
 
       return true
     }
 
     function assert(files) {
-      expect(files.length).toEqual(1)
+      expect(files.length).to.equal(1)
       // And the stats should have been updated
-      expect(files[0].stat.isSymbolicLink()).toEqual(false)
-      expect(files[0].stat.isFile()).toEqual(true)
+      expect(files[0].stat.isSymbolicLink()).to.be.false
+      expect(files[0].stat.isFile()).to.be.true
     }
 
     pipe([vfs.src(symlinkNestedFirst, { resolveSymlinks }), concat(assert)], done)
@@ -130,7 +129,7 @@ describe(".src() with symlinks", () => {
     const spy = expect.createSpy().andReturn(true)
 
     function assert() {
-      expect(spy.calls.length).toEqual(1)
+      expect(spy.calls.length).to.equal(1)
     }
 
     pipe([vfs.src(symlinkNestedFirst, { resolveSymlinks: spy }), concat(assert)], done)
