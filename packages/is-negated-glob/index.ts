@@ -1,0 +1,15 @@
+"use strict"
+
+export default function isNegatedGlob(pattern: string) {
+  if (typeof pattern !== "string") {
+    throw new TypeError("expected a string")
+  }
+
+  const glob = { negated: false, pattern, original: pattern }
+  if (pattern[0] === "!" && pattern[1] !== "(") {
+    glob.negated = true
+    glob.pattern = pattern.slice(1)
+  }
+
+  return glob
+}

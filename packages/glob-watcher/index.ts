@@ -1,10 +1,8 @@
 import chokidar from "chokidar"
-import debounce from "just-debounce"
 import { asyncDone } from "async-done"
-import defaults from "object.defaults/immutable"
 import isNegatedGlob from "is-negated-glob"
 import anymatch from "anymatch"
-import { isFunction } from "lodash"
+import { debounce, defaults, isFunction } from "lodash"
 
 const defaultOpts = {
   delay: 200,
