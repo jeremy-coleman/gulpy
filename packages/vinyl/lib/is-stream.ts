@@ -1,9 +1,11 @@
-function isStream(stream) {
+import { isFunction } from "lodash-es"
+
+export function isStream(stream) {
   if (!stream) {
     return false
   }
 
-  if (typeof stream.pipe !== "function") {
+  if (!isFunction(stream.pipe)) {
     return false
   }
 

@@ -1,7 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
 import * as util from "util"
-import { expect } from "expect"
+import { expect } from "chai"
 import miss from "mississippi"
 import cloneable from "cloneable-readable"
 import File from "../"
@@ -18,43 +18,43 @@ describe("File", () => {
     it("returns true for a Vinyl object", done => {
       const file = new File()
       const result = File.isVinyl(file)
-      expect(result).toEqual(true)
+      expect(result).to.be.true
       done()
     })
 
     it("returns false for a normal object", done => {
       const result = File.isVinyl({})
-      expect(result).toEqual(false)
+      expect(result).to.be.false
       done()
     })
 
     it("returns false for null", done => {
       const result = File.isVinyl(null)
-      expect(result).toEqual(false)
+      expect(result).to.be.false
       done()
     })
 
     it("returns false for a string", done => {
       const result = File.isVinyl("foobar")
-      expect(result).toEqual(false)
+      expect(result).to.be.false
       done()
     })
 
     it("returns false for a String object", done => {
       const result = File.isVinyl(new String("foobar"))
-      expect(result).toEqual(false)
+      expect(result).to.be.false
       done()
     })
 
     it("returns false for a number", done => {
       const result = File.isVinyl(1)
-      expect(result).toEqual(false)
+      expect(result).to.be.false
       done()
     })
 
     it("returns false for a Number object", done => {
       const result = File.isVinyl(new Number(1))
-      expect(result).toEqual(false)
+      expect(result).to.be.false
       done()
     })
 
@@ -63,7 +63,7 @@ describe("File", () => {
     // TODO: decide if this should be leak-able
     it("returns true for a mocked object", done => {
       const result = File.isVinyl({ _isVinyl: true })
-      expect(result).toEqual(true)
+      expect(result).to.be.true
       done()
     })
   })
@@ -71,47 +71,47 @@ describe("File", () => {
   describe("defaults", () => {
     it("defaults cwd to process.cwd", done => {
       const file = new File()
-      expect(file.cwd).toEqual(process.cwd())
+      expect(file.cwd).to.equal(process.cwd())
       done()
     })
 
     it("defaults base to process.cwd", done => {
       const file = new File()
-      expect(file.base).toEqual(process.cwd())
+      expect(file.base).to.equal(process.cwd())
       done()
     })
 
     it("defaults base to cwd property", done => {
       const cwd = path.normalize("/")
       const file = new File({ cwd })
-      expect(file.base).toEqual(cwd)
+      expect(file.base).to.equal(cwd)
       done()
     })
 
     it("defaults path to null", done => {
       const file = new File()
-      expect(file.path).toNotExist()
-      expect(file.path).toEqual(null)
+      expect(file.path).to.not.exist
+      expect(file.path).to.be.null
       done()
     })
 
     it("defaults history to an empty array", done => {
       const file = new File()
-      expect(file.history).toEqual([])
+      expect(file.history).to.deep.equal([])
       done()
     })
 
     it("defaults stat to null", done => {
       const file = new File()
-      expect(file.stat).toNotExist()
-      expect(file.stat).toEqual(null)
+      expect(file.stat).to.not.exist
+      expect(file.stat).to.be.null
       done()
     })
 
     it("defaults contents to null", done => {
       const file = new File()
-      expect(file.contents).toNotExist()
-      expect(file.contents).toEqual(null)
+      expect(file.contents).to.not.exist
+      expect(file.contents).to.be.null
       done()
     })
   })
@@ -135,7 +135,7 @@ describe("File", () => {
       const val = path.normalize("/test.coffee")
       const file = new File({ path: val })
       expect(file.path).toEqual(val)
-      expect(file.history).toEqual([val])
+      expect(file.history).to.deep.equal([val])
       done()
     })
 
@@ -143,7 +143,7 @@ describe("File", () => {
       const val = path.normalize("/test.coffee")
       const file = new File({ history: [val] })
       expect(file.path).toEqual(val)
-      expect(file.history).toEqual([val])
+      expect(file.history).to.deep.equal([val])
       done()
     })
 
@@ -173,7 +173,7 @@ describe("File", () => {
       const expected = path.normalize(val)
       const file = new File({ path: val })
       expect(file.path).toEqual(expected)
-      expect(file.history).toEqual([expected])
+      expect(file.history).to.deep.equal([expected])
       done()
     })
 
@@ -189,8 +189,8 @@ describe("File", () => {
       const val = ["/test/bar/../bar/test.coffee", "/test/foo/../test.coffee"]
       const expected = val.map(p => path.normalize(p))
       const file = new File({ history: val })
-      expect(file.path).toEqual(expected[1])
-      expect(file.history).toEqual(expected)
+      expect(file.path).to.deep.equal(expected[1])
+      expect(file.history).to.deep.equal(expected)
       done()
     })
 
@@ -198,7 +198,7 @@ describe("File", () => {
       const val = ["/test/foo/../foo/", "/test/bar/../bar/"]
       const expected = val.map(p => path.normalize(p.slice(0, -1)))
       const file = new File({ history: val })
-      expect(file.history).toEqual(expected)
+      expect(file.history).to.deep.equal(expected)
       done()
     })
 
@@ -253,20 +253,20 @@ describe("File", () => {
     it("returns true when the contents are a Buffer", done => {
       const val = new Buffer("test")
       const file = new File({ contents: val })
-      expect(file.isBuffer()).toEqual(true)
+      expect(file.isBuffer()).to.be.true
       done()
     })
 
     it("returns false when the contents are a Stream", done => {
       const val = from([])
       const file = new File({ contents: val })
-      expect(file.isBuffer()).toEqual(false)
+      expect(file.isBuffer()).to.be.false
       done()
     })
 
     it("returns false when the contents are null", done => {
       const file = new File({ contents: null })
-      expect(file.isBuffer()).toEqual(false)
+      expect(file.isBuffer()).to.be.false
       done()
     })
   })
@@ -275,20 +275,20 @@ describe("File", () => {
     it("returns false when the contents are a Buffer", done => {
       const val = new Buffer("test")
       const file = new File({ contents: val })
-      expect(file.isStream()).toEqual(false)
+      expect(file.isStream()).to.be.false
       done()
     })
 
     it("returns true when the contents are a Stream", done => {
       const val = from([])
       const file = new File({ contents: val })
-      expect(file.isStream()).toEqual(true)
+      expect(file.isStream()).to.be.true
       done()
     })
 
     it("returns false when the contents are null", done => {
       const file = new File({ contents: null })
-      expect(file.isStream()).toEqual(false)
+      expect(file.isStream()).to.be.false
       done()
     })
   })
@@ -297,20 +297,20 @@ describe("File", () => {
     it("returns false when the contents are a Buffer", done => {
       const val = new Buffer("test")
       const file = new File({ contents: val })
-      expect(file.isNull()).toEqual(false)
+      expect(file.isNull()).to.be.false
       done()
     })
 
     it("returns false when the contents are a Stream", done => {
       const val = from([])
       const file = new File({ contents: val })
-      expect(file.isNull()).toEqual(false)
+      expect(file.isNull()).to.be.false
       done()
     })
 
     it("returns true when the contents are null", done => {
       const file = new File({ contents: null })
-      expect(file.isNull()).toEqual(true)
+      expect(file.isNull()).to.be.true
       done()
     })
   })
@@ -325,72 +325,72 @@ describe("File", () => {
     it("returns false when the contents are a Buffer", done => {
       const val = new Buffer("test")
       const file = new File({ contents: val, stat: fakeStat })
-      expect(file.isDirectory()).toEqual(false)
+      expect(file.isDirectory()).to.be.false
       done()
     })
 
     it("returns false when the contents are a Stream", done => {
       const val = from([])
       const file = new File({ contents: val, stat: fakeStat })
-      expect(file.isDirectory()).toEqual(false)
+      expect(file.isDirectory()).to.be.false
       done()
     })
 
     it("returns true when the contents are null & stat.isDirectory is true", done => {
       const file = new File({ contents: null, stat: fakeStat })
-      expect(file.isDirectory()).toEqual(true)
+      expect(file.isDirectory()).to.be.true
       done()
     })
 
     it("returns false when stat exists but does not contain an isDirectory method", done => {
       const file = new File({ contents: null, stat: {} })
-      expect(file.isDirectory()).toEqual(false)
+      expect(file.isDirectory()).to.be.false
       done()
     })
 
     it("returns false when stat does not exist", done => {
       const file = new File({ contents: null })
-      expect(file.isDirectory()).toEqual(false)
+      expect(file.isDirectory()).to.be.false
       done()
     })
   })
 
   describe("isSymbolic()", () => {
-    const fakeStat = {
+    const fakeStat = ({
       isSymbolicLink() {
         return true
       },
-    }
+    } as any) as fs.Stats
 
     it("returns false when the contents are a Buffer", done => {
       const val = new Buffer("test")
       const file = new File({ contents: val, stat: fakeStat })
-      expect(file.isSymbolic()).toEqual(false)
+      expect(file.isSymbolic()).to.be.false
       done()
     })
 
     it("returns false when the contents are a Stream", done => {
       const val = from([])
       const file = new File({ contents: val, stat: fakeStat })
-      expect(file.isSymbolic()).toEqual(false)
+      expect(file.isSymbolic()).to.be.false
       done()
     })
 
     it("returns true when the contents are null & stat.isSymbolicLink is true", done => {
       const file = new File({ contents: null, stat: fakeStat })
-      expect(file.isSymbolic()).toEqual(true)
+      expect(file.isSymbolic()).to.be.true
       done()
     })
 
     it("returns false when stat exists but does not contain an isSymbolicLink method", done => {
       const file = new File({ contents: null, stat: {} })
-      expect(file.isSymbolic()).toEqual(false)
+      expect(file.isSymbolic()).to.be.false
       done()
     })
 
     it("returns false when stat does not exist", done => {
       const file = new File({ contents: null })
-      expect(file.isSymbolic()).toEqual(false)
+      expect(file.isSymbolic()).to.be.false
       done()
     })
   })
@@ -406,12 +406,12 @@ describe("File", () => {
       const file = new File(options)
       const file2 = file.clone()
 
-      expect(file2).toNotBe(file)
-      expect(file2.cwd).toEqual(file.cwd)
-      expect(file2.base).toEqual(file.base)
-      expect(file2.path).toEqual(file.path)
-      expect(file2.contents).toNotBe(file.contents)
-      expect(file2.contents.toString("utf8")).toEqual(file.contents.toString("utf8"))
+      expect(file2).to.not.equal(file)
+      expect(file2.cwd).to.equal(file.cwd)
+      expect(file2.base).to.equal(file.base)
+      expect(file2.path).to.equal(file.path)
+      expect(file2.contents).to.not.equal(file.contents)
+      expect(file2.contents!.toString("utf8")).to.equal(file.contents!.toString("utf8"))
       done()
     })
 
@@ -425,13 +425,13 @@ describe("File", () => {
       const file = new File(options)
 
       const copy1 = file.clone({ contents: false })
-      expect(copy1.contents).toBe(file.contents)
+      expect(copy1.contents).to.equal(file.contents)
 
       const copy2 = file.clone()
-      expect(copy2.contents).toNotBe(file.contents)
+      expect(copy2.contents).to.not.equal(file.contents)
 
       const copy3 = file.clone({ contents: "invalid" })
-      expect(copy3.contents).toNotBe(file.contents)
+      expect(copy3.contents).to.not.equal(file.contents)
       done()
     })
 
@@ -445,11 +445,11 @@ describe("File", () => {
       const file = new File(options)
       const file2 = file.clone()
 
-      expect(file2).toNotBe(file)
-      expect(file2.cwd).toEqual(file.cwd)
-      expect(file2.base).toEqual(file.base)
-      expect(file2.path).toEqual(file.path)
-      expect(file2.contents).toNotBe(file.contents)
+      expect(file2).to.not.equal(file)
+      expect(file2.cwd).to.equal(file.cwd)
+      expect(file2.base).to.equal(file.base)
+      expect(file2.path).to.equal(file.path)
+      expect(file2.contents).to.not.equal(file.contents)
 
       let ends = 2
       let data = null
@@ -462,7 +462,7 @@ describe("File", () => {
         }
 
         if (--ends === 0) {
-          expect(data).toNotBe(data2)
+          expect(data).to.not.equal(data2)
           expect(data.toString("utf8")).toEqual(data2.toString("utf8"))
           done()
         }
@@ -505,29 +505,29 @@ describe("File", () => {
 
       function assert() {
         if (--ends === 0) {
-          expect(data).toEqual(data2)
+          expect(data).to.equal(data2)
           done()
         }
       }
 
       // Start flowing file2
-      file2.contents.on("data", chunk => {
+      file2.contents!.on("data", chunk => {
         data2 += chunk.toString("utf8")
       })
 
       process.nextTick(() => {
         // Nothing was written yet
-        expect(data).toEqual("")
-        expect(data2).toEqual("")
+        expect(data).to.equal("")
+        expect(data2).to.equal("")
 
         // Starts flowing file
-        file.contents.on("data", chunk => {
+        file.contents!.on("data", chunk => {
           data += chunk.toString("utf8")
         })
       })
 
-      file2.contents.on("end", assert)
-      file.contents.on("end", assert)
+      file2.contents!.on("end", assert)
+      file.contents!.on("end", assert)
     })
 
     it("does not start flowing until all clones flows (readable)", done => {
@@ -543,11 +543,11 @@ describe("File", () => {
       let data2 = ""
 
       function assert(data) {
-        expect(data.toString("utf8")).toEqual(data2)
+        expect(data.toString("utf8")).to.equal(data2)
       }
 
       // Start flowing file2
-      file2.contents.on("readable", function () {
+      file2.contents!.on("readable", function () {
         let chunk
         while ((chunk = this.read()) !== null) {
           data2 += chunk.toString()
@@ -567,11 +567,11 @@ describe("File", () => {
       const file = new File(options)
       const file2 = file.clone()
 
-      expect(file2).toNotBe(file)
-      expect(file2.cwd).toEqual(file.cwd)
-      expect(file2.base).toEqual(file.base)
-      expect(file2.path).toEqual(file.path)
-      expect(file2.contents).toNotExist()
+      expect(file2).to.not.equal(file)
+      expect(file2.cwd).to.equal(file.cwd)
+      expect(file2.base).to.equal(file.base)
+      expect(file2.path).to.equal(file.path)
+      expect(file2.contents).to.not.exist
       done()
     })
 
@@ -587,10 +587,10 @@ describe("File", () => {
       const file = new File(options)
       const copy = file.clone()
 
-      expect(copy.stat.isFile()).toEqual(true)
-      expect(copy.stat.isDirectory()).toEqual(false)
-      expect(file.stat).toBeAn(fs.Stats)
-      expect(copy.stat).toBeAn(fs.Stats)
+      expect(copy.stat!.isFile()).to.be.true
+      expect(copy.stat!.isDirectory()).to.be.false
+      expect(file.stat).to.be.instanceOf(fs.Stats)
+      expect(copy.stat).to.be.instanceOf(fs.Stats)
       done()
     })
 
@@ -623,13 +623,13 @@ describe("File", () => {
       const file = new File(options)
       const file2 = file.clone()
 
-      expect(file2).toNotBe(file)
-      expect(file2.cwd).toEqual(file.cwd)
-      expect(file2.base).toEqual(file.base)
-      expect(file2.path).toEqual(file.path)
-      expect(file2.custom).toNotBe(file.custom)
-      expect(file2.custom.meta).toNotBe(file.custom.meta)
-      expect(file2.custom).toEqual(file.custom)
+      expect(file2).to.not.equal(file)
+      expect(file2.cwd).to.equal(file.cwd)
+      expect(file2.base).to.equal(file.base)
+      expect(file2.path).to.equal(file.path)
+      expect(file2.custom).to.not.equal(file.custom)
+      expect(file2.custom.meta).to.not.equal(file.custom.meta)
+      expect(file2.custom).to.deep.equal(file.custom)
       done()
     })
 
@@ -651,9 +651,9 @@ describe("File", () => {
       file.path = history[2]
       const file2 = file.clone()
 
-      expect(file2.history).toEqual(history)
-      expect(file2.history).toNotBe(file.history)
-      expect(file2.path).toEqual(history[2])
+      expect(file2.history).to.deep.equal(history)
+      expect(file2.history).to.not.equal(file.history)
+      expect(file2.path).to.equal(history[2])
       done()
     })
 
@@ -669,44 +669,40 @@ describe("File", () => {
       const file = new File(options)
 
       const file2 = file.clone()
-      expect(file2.custom).toEqual(file.custom)
-      expect(file2.custom).toNotBe(file.custom)
+      expect(file2.custom).to.deep.equal(file.custom)
+      expect(file2.custom).to.not.equal(file.custom)
       expect(file2.custom.meta).toEqual(file.custom.meta)
-      expect(file2.custom.meta).toNotBe(file.custom.meta)
+      expect(file2.custom.meta).to.not.equal(file.custom.meta)
 
       const file3 = file.clone(true)
-      expect(file3.custom).toEqual(file.custom)
-      expect(file3.custom).toNotBe(file.custom)
+      expect(file3.custom).to.deep.equal(file.custom)
+      expect(file3.custom).to.not.equal(file.custom)
       expect(file3.custom.meta).toEqual(file.custom.meta)
-      expect(file3.custom.meta).toNotBe(file.custom.meta)
+      expect(file3.custom.meta).to.not.equal(file.custom.meta)
 
       const file4 = file.clone({ deep: true })
-      expect(file4.custom).toEqual(file.custom)
-      expect(file4.custom).toNotBe(file.custom)
-      expect(file4.custom.meta).toEqual(file.custom.meta)
-      expect(file4.custom.meta).toNotBe(file.custom.meta)
+      expect(file4.custom).to.deep.equal(file.custom)
+      expect(file4.custom).to.not.equal(file.custom)
+      expect(file4.custom.meta).to.deep.equal(file.custom.meta)
+      expect(file4.custom.meta).to.not.equal(file.custom.meta)
 
       const file5 = file.clone(false)
-      expect(file5.custom).toEqual(file.custom)
-      expect(file5.custom).toBe(file.custom)
-      expect(file5.custom.meta).toEqual(file.custom.meta)
-      expect(file5.custom.meta).toBe(file.custom.meta)
+      expect(file5.custom).to.equal(file.custom)
+      expect(file5.custom).to.deep.equal(file.custom)
+      expect(file5.custom.meta).to.deep.equal(file.custom.meta)
+      expect(file5.custom.meta).to.equal(file.custom.meta)
 
       const file6 = file.clone({ deep: false })
-      expect(file6.custom).toEqual(file.custom)
-      expect(file6.custom).toBe(file.custom)
-      expect(file6.custom.meta).toEqual(file.custom.meta)
-      expect(file6.custom.meta).toBe(file.custom.meta)
+      expect(file6.custom).to.deep.equal(file.custom)
+      expect(file6.custom).to.equal(file.custom)
+      expect(file6.custom.meta).to.deep.equal(file.custom.meta)
+      expect(file6.custom.meta).to.equal(file.custom.meta)
 
       done()
     })
 
     it("supports inheritance", done => {
-      class ExtendedFile extends File {
-        constructor(...args) {
-          File.apply(this, args)
-        }
-      }
+      class ExtendedFile extends File {}
 
       // Just copy static stuff since Object.setPrototypeOf is node >=0.12
       Object.keys(File).forEach(key => {
@@ -716,12 +712,12 @@ describe("File", () => {
       const file = new ExtendedFile()
       const file2 = file.clone()
 
-      expect(file2).toNotBe(file)
+      expect(file2).to.not.equal(file)
       expect(file2.constructor).toBe(ExtendedFile)
-      expect(file2).toBeAn(ExtendedFile)
+      expect(file2).to.be.instanceOf(ExtendedFile)
       expect(file2).toBeA(File)
-      expect(ExtendedFile.prototype.isPrototypeOf(file2)).toEqual(true)
-      expect(File.prototype.isPrototypeOf(file2)).toEqual(true)
+      expect(ExtendedFile.prototype.isPrototypeOf(file2)).to.be.true
+      expect(File.prototype.isPrototypeOf(file2)).to.be.true
       done()
     })
   })
@@ -730,10 +726,10 @@ describe("File", () => {
     it("returns correct format when no contents and no path", done => {
       const file = new File()
       const expectation = "<File >"
-      expect(file.inspect()).toEqual(expectation)
-      expect(util.inspect(file)).toEqual(expectation)
+      expect(file.inspect()).to.equal(expectation)
+      expect(util.inspect(file)).to.equal(expectation)
       if (util.inspect.custom) {
-        expect(file[util.inspect.custom]()).toEqual(expectation)
+        expect(file[util.inspect.custom]()).to.equal(expectation)
       }
       done()
     })
@@ -741,7 +737,7 @@ describe("File", () => {
     it("returns correct format when Buffer contents and no path", done => {
       const val = new Buffer("test")
       const file = new File({ contents: val })
-      expect(file.inspect()).toEqual("<File <Buffer 74 65 73 74>>")
+      expect(file.inspect()).to.equal("<File <Buffer 74 65 73 74>>")
       done()
     })
 
@@ -753,7 +749,7 @@ describe("File", () => {
         path: "/test/test.coffee",
         contents: val,
       })
-      expect(file.inspect()).toEqual('<File "test.coffee" <Buffer 74 65 73 74>>')
+      expect(file.inspect()).to.equal('<File "test.coffee" <Buffer 74 65 73 74>>')
       done()
     })
 
@@ -764,7 +760,7 @@ describe("File", () => {
         path: "/test/test.coffee",
         contents: from([]),
       })
-      expect(file.inspect()).toEqual('<File "test.coffee" <CloneableStream>>')
+      expect(file.inspect()).to.equal('<File "test.coffee" <CloneableStream>>')
       done()
     })
 
@@ -775,7 +771,7 @@ describe("File", () => {
         path: "/test/test.coffee",
         contents: null,
       })
-      expect(file.inspect()).toEqual('<File "test.coffee">')
+      expect(file.inspect()).to.equal('<File "test.coffee">')
       done()
     })
   })
@@ -785,7 +781,7 @@ describe("File", () => {
       const val = new Buffer("test")
       const file = new File()
       file._contents = val
-      expect(file.contents).toEqual(val)
+      expect(file.contents).to.deep.equal(val)
       done()
     })
 
@@ -793,7 +789,7 @@ describe("File", () => {
       const val = new Buffer("test")
       const file = new File()
       file.contents = val
-      expect(file._contents).toEqual(val)
+      expect(file._contents).to.deep.equal(val)
       done()
     })
 
@@ -801,7 +797,7 @@ describe("File", () => {
       const val = new Buffer("test")
       const file = new File()
       file.contents = val
-      expect(file.contents).toEqual(val)
+      expect(file.contents).to.deep.equal(val)
       done()
     })
 
@@ -809,7 +805,7 @@ describe("File", () => {
       const val = from([])
       const file = new File()
       file.contents = val
-      expect(isCloneable(file.contents)).toEqual(true)
+      expect(isCloneable(file.contents)).to.be.true
       done()
     })
 
@@ -818,7 +814,7 @@ describe("File", () => {
       const clone = cloneable(val)
       const file = new File()
       file.contents = clone
-      expect(file.contents._original).toBe(val)
+      expect(file.contents!._original).to.equal(val)
       done()
     })
 
@@ -826,7 +822,7 @@ describe("File", () => {
       const val = null
       const file = new File()
       file.contents = val
-      expect(file.contents).toEqual(null)
+      expect(file.contents).to.be.null
       done()
     })
 
@@ -836,7 +832,7 @@ describe("File", () => {
       function invalid() {
         file.contents = val
       }
-      expect(invalid).toThrow()
+      expect(invalid).to.throw()
       done()
     })
   })
@@ -846,7 +842,7 @@ describe("File", () => {
       const val = "/test"
       const file = new File()
       file._cwd = val
-      expect(file.cwd).toEqual(val)
+      expect(file.cwd).to.equal(val)
       done()
     })
 
@@ -854,7 +850,7 @@ describe("File", () => {
       const val = "/test"
       const file = new File()
       file.cwd = val
-      expect(file._cwd).toEqual(path.normalize(val))
+      expect(file._cwd).to.equal(path.normalize(val))
       done()
     })
 
@@ -865,14 +861,14 @@ describe("File", () => {
 
       file.cwd = val
 
-      expect(file.cwd).toEqual(expected)
+      expect(file.cwd).to.equal(expected)
 
       const val2 = "\\test\\foo\\..\\foo\\"
       const expected2 = path.normalize(isWin ? val2.slice(0, -1) : val2)
 
       file.cwd = val2
 
-      expect(file.cwd).toEqual(expected2)
+      expect(file.cwd).to.equal(expected2)
       done()
     })
 
@@ -884,7 +880,7 @@ describe("File", () => {
         function invalid() {
           file.cwd = val
         }
-        expect(invalid).toThrow("cwd must be a non-empty string.")
+        expect(invalid).to.throw("cwd must be a non-empty string.")
       })
 
       done()
@@ -894,7 +890,7 @@ describe("File", () => {
   describe("base get/set", () => {
     it("proxies cwd when omitted", done => {
       const file = new File({ cwd: "/test" })
-      expect(file.base).toEqual(file.cwd)
+      expect(file.base).to.equal(file.cwd)
       done()
     })
 
@@ -904,14 +900,14 @@ describe("File", () => {
         base: "/test",
       })
       file.cwd = "/foo/"
-      expect(file.base).toEqual(file.cwd)
+      expect(file.base).to.equal(file.cwd)
 
       const file2 = new File({
         cwd: "/test",
       })
       file2.base = "/test/"
       file2.cwd = "/foo/"
-      expect(file2.base).toEqual(file.cwd)
+      expect(file2.base).to.equal(file.cwd)
       done()
     })
 
@@ -920,9 +916,9 @@ describe("File", () => {
         cwd: "/foo",
         base: "/bar",
       })
-      expect(file.base).toNotEqual(file.cwd)
+      expect(file.base).to.not.equal(file.cwd)
       file.base = file.cwd
-      expect(file.base).toEqual(file.cwd)
+      expect(file.base).to.equal(file.cwd)
       done()
     })
 
@@ -931,13 +927,13 @@ describe("File", () => {
         cwd: "/foo",
         base: "/bar",
       })
-      expect(file.base).toNotEqual(file.cwd)
+      expect(file.base).to.not.equal(file.cwd)
       file.base = null
-      expect(file.base).toEqual(file.cwd)
+      expect(file.base).to.equal(file.cwd)
       file.base = "/bar/"
-      expect(file.base).toNotEqual(file.cwd)
+      expect(file.base).to.not.equal(file.cwd)
       file.base = undefined
-      expect(file.base).toEqual(file.cwd)
+      expect(file.base).to.equal(file.cwd)
       done()
     })
 
@@ -945,7 +941,7 @@ describe("File", () => {
       const val = "/test/"
       const file = new File()
       file._base = val
-      expect(file.base).toEqual(val)
+      expect(file.base).to.equal(val)
       done()
     })
 
@@ -953,7 +949,7 @@ describe("File", () => {
       const val = "/test/foo"
       const file = new File()
       file.base = val
-      expect(file._base).toEqual(path.normalize(val))
+      expect(file._base).to.equal(path.normalize(val))
       done()
     })
 
@@ -964,14 +960,14 @@ describe("File", () => {
 
       file.base = val
 
-      expect(file.base).toEqual(expected)
+      expect(file.base).to.equal(expected)
 
       const val2 = "\\test\\foo\\..\\foo\\"
       const expected2 = path.normalize(isWin ? val2.slice(0, -1) : val2)
 
       file.base = val2
 
-      expect(file.base).toEqual(expected2)
+      expect(file.base).to.equal(expected2)
       done()
     })
 
@@ -983,7 +979,7 @@ describe("File", () => {
         function invalid() {
           file.base = val
         }
-        expect(invalid).toThrow("base must be a non-empty string, or null/undefined.")
+        expect(invalid).to.throw("base must be a non-empty string, or null/undefined.")
       })
 
       done()
@@ -998,7 +994,7 @@ describe("File", () => {
         file.relative = "test"
       }
 
-      expect(invalid).toThrow(
+      expect(invalid).to.throw(
         "File.relative is generated from the base and path attributes. Do not modify it."
       )
       done()
@@ -1011,7 +1007,7 @@ describe("File", () => {
         file.relative
       }
 
-      expect(invalid).toThrow("No path specified! Can not get relative.")
+      expect(invalid).to.throw("No path specified! Can not get relative.")
       done()
     })
 
@@ -1021,7 +1017,7 @@ describe("File", () => {
         path: "/test/test.coffee",
       })
 
-      expect(file.relative).toEqual("test.coffee")
+      expect(file.relative).to.equal("test.coffee")
       done()
     })
 
@@ -1031,7 +1027,7 @@ describe("File", () => {
         path: "/test/test.coffee",
       })
 
-      expect(file.relative).toEqual(path.normalize("test/test.coffee"))
+      expect(file.relative).to.equal(path.normalize("test/test.coffee"))
       done()
     })
 
@@ -1046,7 +1042,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.relative).toEqual(path.normalize("foo/bar"))
+      expect(file.relative).to.equal(path.normalize("foo/bar"))
       done()
     })
 
@@ -1061,7 +1057,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.relative).toEqual(path.normalize("foo/bar"))
+      expect(file.relative).to.equal(path.normalize("foo/bar"))
       done()
     })
 
@@ -1079,7 +1075,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.relative).toEqual(path.normalize("foo/bar"))
+      expect(file.relative).to.equal(path.normalize("foo/bar"))
       done()
     })
   })
@@ -1092,7 +1088,7 @@ describe("File", () => {
         file.dirname
       }
 
-      expect(invalid).toThrow("No path specified! Can not get dirname.")
+      expect(invalid).to.throw("No path specified! Can not get dirname.")
       done()
     })
 
@@ -1103,7 +1099,7 @@ describe("File", () => {
         path: "/test/test.coffee",
       })
 
-      expect(file.dirname).toEqual(path.normalize("/test"))
+      expect(file.dirname).to.equal(path.normalize("/test"))
       done()
     })
 
@@ -1114,7 +1110,7 @@ describe("File", () => {
         file.dirname = "/test"
       }
 
-      expect(invalid).toThrow("No path specified! Can not set dirname.")
+      expect(invalid).to.throw("No path specified! Can not set dirname.")
       done()
     })
 
@@ -1126,7 +1122,7 @@ describe("File", () => {
       })
 
       file.dirname = "/test/foo"
-      expect(file.path).toEqual(path.normalize("/test/foo/test.coffee"))
+      expect(file.path).to.equal(path.normalize("/test/foo/test.coffee"))
       done()
     })
   })
@@ -1136,10 +1132,10 @@ describe("File", () => {
       const file = new File()
 
       function invalid() {
-        a = file.basename
+        file.basename
       }
 
-      expect(invalid).toThrow("No path specified! Can not get basename.")
+      expect(invalid).to.throw("No path specified! Can not get basename.")
       done()
     })
 
@@ -1150,7 +1146,7 @@ describe("File", () => {
         path: "/test/test.coffee",
       })
 
-      expect(file.basename).toEqual("test.coffee")
+      expect(file.basename).to.equal("test.coffee")
       done()
     })
 
@@ -1164,7 +1160,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1178,7 +1174,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1195,7 +1191,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1204,7 +1200,7 @@ describe("File", () => {
         path: "/test/foo/",
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1218,7 +1214,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1232,7 +1228,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1249,7 +1245,7 @@ describe("File", () => {
         },
       })
 
-      expect(file.basename).toEqual("foo")
+      expect(file.basename).to.equal("foo")
       done()
     })
 
@@ -1260,7 +1256,7 @@ describe("File", () => {
         file.basename = "test.coffee"
       }
 
-      expect(invalid).toThrow("No path specified! Can not set basename.")
+      expect(invalid).to.throw("No path specified! Can not set basename.")
       done()
     })
 
@@ -1272,7 +1268,7 @@ describe("File", () => {
       })
 
       file.basename = "foo.png"
-      expect(file.path).toEqual(path.normalize("/test/foo.png"))
+      expect(file.path).to.equal(path.normalize("/test/foo.png"))
       done()
     })
   })
@@ -1285,7 +1281,7 @@ describe("File", () => {
         file.stem
       }
 
-      expect(invalid).toThrow("No path specified! Can not get stem.")
+      expect(invalid).to.throw("No path specified! Can not get stem.")
       done()
     })
 
@@ -1296,7 +1292,7 @@ describe("File", () => {
         path: "/test/test.coffee",
       })
 
-      expect(file.stem).toEqual("test")
+      expect(file.stem).to.equal("test")
       done()
     })
 
@@ -1307,7 +1303,7 @@ describe("File", () => {
         file.stem = "test.coffee"
       }
 
-      expect(invalid).toThrow("No path specified! Can not set stem.")
+      expect(invalid).to.throw("No path specified! Can not set stem.")
       done()
     })
 
@@ -1319,7 +1315,7 @@ describe("File", () => {
       })
 
       file.stem = "foo"
-      expect(file.path).toEqual(path.normalize("/test/foo.coffee"))
+      expect(file.path).to.equal(path.normalize("/test/foo.coffee"))
       done()
     })
   })
@@ -1332,7 +1328,7 @@ describe("File", () => {
         file.extname
       }
 
-      expect(invalid).toThrow("No path specified! Can not get extname.")
+      expect(invalid).to.throw("No path specified! Can not get extname.")
       done()
     })
 
@@ -1343,7 +1339,7 @@ describe("File", () => {
         path: "/test/test.coffee",
       })
 
-      expect(file.extname).toEqual(".coffee")
+      expect(file.extname).to.equal(".coffee")
       done()
     })
 
@@ -1354,7 +1350,7 @@ describe("File", () => {
         file.extname = ".coffee"
       }
 
-      expect(invalid).toThrow("No path specified! Can not set extname.")
+      expect(invalid).to.throw("No path specified! Can not set extname.")
       done()
     })
 
@@ -1366,7 +1362,7 @@ describe("File", () => {
       })
 
       file.extname = ".png"
-      expect(file.path).toEqual(path.normalize("/test/test.png"))
+      expect(file.path).to.equal(path.normalize("/test/test.png"))
       done()
     })
   })
@@ -1379,8 +1375,8 @@ describe("File", () => {
       })
       const history = [path.normalize("/test/test.coffee")]
 
-      expect(file.path).toEqual(history[0])
-      expect(file.history).toEqual(history)
+      expect(file.path).to.equal(history[0])
+      expect(file.history).to.equal(history)
       done()
     })
 
@@ -1393,15 +1389,15 @@ describe("File", () => {
       const history = [path.normalize("/test/test.coffee"), val]
 
       file.path = val
-      expect(file.path).toEqual(val)
-      expect(file.history).toEqual(history)
+      expect(file.path).to.equal(val)
+      expect(file.history).to.equal(history)
 
       const val2 = path.normalize("/test/test.es6")
       history.push(val2)
 
       file.path = val2
-      expect(file.path).toEqual(val2)
-      expect(file.history).toEqual(history)
+      expect(file.path).to.equal(val2)
+      expect(file.history).to.deep.equal(history)
       done()
     })
 
@@ -1415,8 +1411,8 @@ describe("File", () => {
 
       file.path = val
       file.path = val
-      expect(file.path).toEqual(val)
-      expect(file.history).toEqual(history)
+      expect(file.path).to.equal(val)
+      expect(file.history).to.deep.equal(history)
       done()
     })
 
@@ -1429,22 +1425,22 @@ describe("File", () => {
       const history = [val]
 
       file.path = ""
-      expect(file.path).toEqual(val)
-      expect(file.history).toEqual(history)
+      expect(file.path).to.equal(val)
+      expect(file.history).to.deep.equal(history)
       done()
     })
 
     it("throws on set with null path", done => {
       const file = new File()
 
-      expect(file.path).toNotExist()
-      expect(file.history).toEqual([])
+      expect(file.path).to.not.exist
+      expect(file.history).to.deep.equal([])
 
       function invalid() {
-        file.path = null
+        file.path = null as any
       }
 
-      expect(invalid).toThrow("path should be a string.")
+      expect(invalid).to.throw("path should be a string.")
       done()
     })
 
@@ -1455,8 +1451,8 @@ describe("File", () => {
 
       file.path = val
 
-      expect(file.path).toEqual(expected)
-      expect(file.history).toEqual([expected])
+      expect(file.path).to.equal(expected)
+      expect(file.history).to.deep.equal([expected])
       done()
     })
 
@@ -1464,8 +1460,8 @@ describe("File", () => {
       const file = new File()
       file.path = "/test/"
 
-      expect(file.path).toEqual(path.normalize("/test"))
-      expect(file.history).toEqual([path.normalize("/test")])
+      expect(file.path).to.equal(path.normalize("/test"))
+      expect(file.history).to.deep.equal([path.normalize("/test")])
       done()
     })
 
@@ -1479,8 +1475,8 @@ describe("File", () => {
       })
       file.path = "/test/"
 
-      expect(file.path).toEqual(path.normalize("/test"))
-      expect(file.history).toEqual([path.normalize("/test")])
+      expect(file.path).to.equal(path.normalize("/test"))
+      expect(file.history).to.deep.equal([path.normalize("/test")])
       done()
     })
 
@@ -1494,8 +1490,8 @@ describe("File", () => {
       })
       file.path = "/test/"
 
-      expect(file.path).toEqual(path.normalize("/test"))
-      expect(file.history).toEqual([path.normalize("/test")])
+      expect(file.path).to.equal(path.normalize("/test"))
+      expect(file.history).to.deep.equal([path.normalize("/test")])
       done()
     })
 
@@ -1512,8 +1508,8 @@ describe("File", () => {
       })
       file.path = "/test/"
 
-      expect(file.path).toEqual(path.normalize("/test"))
-      expect(file.history).toEqual([path.normalize("/test")])
+      expect(file.path).to.equal(path.normalize("/test"))
+      expect(file.history).to.deep.equal([path.normalize("/test")])
       done()
     })
   })
@@ -1522,7 +1518,7 @@ describe("File", () => {
     it("return null on get with no symlink", done => {
       const file = new File()
 
-      expect(file.symlink).toEqual(null)
+      expect(file.symlink).to.be.null
       done()
     })
 
@@ -1531,7 +1527,7 @@ describe("File", () => {
       const file = new File()
       file._symlink = val
 
-      expect(file.symlink).toEqual(val)
+      expect(file.symlink).to.equal(val)
       done()
     })
 
@@ -1542,7 +1538,7 @@ describe("File", () => {
         file.symlink = null
       }
 
-      expect(invalid).toThrow("symlink should be a string")
+      expect(invalid).to.throw("symlink should be a string")
       done()
     })
 
@@ -1552,7 +1548,7 @@ describe("File", () => {
       const file = new File()
       file.symlink = val
 
-      expect(file._symlink).toEqual(expected)
+      expect(file._symlink).to.equal(expected)
       done()
     })
 
@@ -1561,7 +1557,7 @@ describe("File", () => {
       const file = new File()
       file.symlink = val
 
-      expect(file.symlink).toEqual(val)
+      expect(file.symlink).to.equal(val)
       done()
     })
 
@@ -1571,7 +1567,7 @@ describe("File", () => {
       const file = new File()
       file.symlink = val
 
-      expect(file.symlink).toEqual(expected)
+      expect(file.symlink).to.equal(expected)
       done()
     })
   })

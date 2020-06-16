@@ -1,6 +1,6 @@
 import path from "path"
 
-function normalize(str) {
+function normalize(str: string) {
   return str === "" ? str : path.normalize(str)
 }
 
