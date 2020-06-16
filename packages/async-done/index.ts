@@ -1,6 +1,6 @@
 import * as domain from "domain"
 import eos from "end-of-stream"
-import { once, isFunction } from "lodash-es"
+import { once, isFunction } from "lodash"
 import exhaust from "stream-exhaust"
 
 import type { ChildProcess } from "child_process"

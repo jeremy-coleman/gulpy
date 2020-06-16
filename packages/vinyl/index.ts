@@ -1,16 +1,14 @@
 import * as path from "path"
-import * as util from "util"
+import { inspect } from "util"
 import * as fs from "fs"
 
-import clone from "clone"
+import { clone, forEach, isBoolean, last, isString, isFunction, cloneDeep } from "lodash"
 import cloneable from "cloneable-readable"
 import replaceExt from "replace-ext"
-import cloneStats from "clone-stats"
-import cloneBuffer from "clone-buffer"
 import removeTrailingSep from "remove-trailing-separator"
 import { isStream } from "./lib/is-stream"
-import normalize from "./lib/normalize"
-import inspectStream from "./lib/inspect-stream"
+import { normalize } from "./lib/normalize"
+import { inspectStream } from "./lib/inspect-stream"
 
 const builtInFields = [
   "_contents",
@@ -75,19 +73,16 @@ interface ConstructorOptions {
 }
 
 interface FileConstructor {
-  new (options: ConstructorOptions & { contents: null }): NullFile
-  new (options: ConstructorOptions & { contents: Buffer }): BufferFile
-  new (options: ConstructorOptions & { contents: NodeJS.ReadableStream }): StreamFile
-  new (options?: ConstructorOptions): File
-
-  prototype: File
+  (options: ConstructorOptions & { contents: null }): NullFile
+  (options: ConstructorOptions & { contents: Buffer }): BufferFile
+  (options: ConstructorOptions & { contents: NodeJS.ReadableStream }): StreamFile
+  (options?: ConstructorOptions): File
 }
 
-interface File {}
-
 // See https://github.com/Microsoft/TypeScript/issues/11796
-export interface BufferFile extends File {
+export interface BufferFile extends FileSansContents {
   contents: Buffer
+  clone(opt?: CloneOptions): BufferFile
   isStream(): this is never
   isBuffer(): true
   isNull(): this is never
@@ -95,8 +90,9 @@ export interface BufferFile extends File {
   isSymbolic(): this is never
 }
 
-export interface StreamFile extends File {
+export interface StreamFile extends FileSansContents {
   contents: NodeJS.ReadableStream
+  clone(opt?: CloneOptions): StreamFile
   isStream(): true
   isBuffer(): this is never
   isNull(): this is never
@@ -104,8 +100,9 @@ export interface StreamFile extends File {
   isSymbolic(): this is never
 }
 
-export interface NullFile extends File {
+export interface NullFile extends FileSansContents {
   contents: null
+  clone(opt?: CloneOptions): NullFile
   isStream(): this is never
   isBuffer(): this is never
   isNull(): true
@@ -115,13 +112,24 @@ export interface NullFile extends File {
 
 export interface DirectoryFile extends NullFile {
   isDirectory(): true
+  clone(opt?: CloneOptions): DirectoryFile
   isSymbolic(): this is never
 }
 
 export interface SymbolicFile extends NullFile {
   isDirectory(): this is never
+  clone(opt?: CloneOptions): SymbolicFile
   isSymbolic(): true
 }
+
+type CloneOptions =
+  | boolean
+  | {
+      contents?: boolean
+      deep?: boolean
+    }
+
+type FileSansContents = Omit<File, "contents" | "clone">
 
 class File {
   /**
@@ -129,25 +137,28 @@ class File {
    * through `file.history[file.history.length - 1]` (current). `file.history` and its elements
    * should normally be treated as read-only and only altered indirectly by setting `file.path`.
    */
-  readonly history: ReadonlyArray<string>
+  readonly history: string[]
 
-  stat: fs.Stats | null;
+  stat?: fs.Stats
+  custom?: any
 
-  [customProperty: string]: any
+  _isVinyl = true
+  private _symlink: null
+  private _contents: Buffer | NodeJS.ReadableStream | null
+  private _cwd: string
+  private _base?: string
 
-  constructor(file?: ConstructorOptions) {
-    if (!file) {
-      file = {}
-    }
+  static of: FileConstructor = (file?: ConstructorOptions) => new File(file) as any
 
+  constructor(file: ConstructorOptions = {}) {
     // Stat = files stats object
-    this.stat = file.stat || null
+    this.stat = file.stat || undefined
 
     // Contents = stream, buffer, or null if not read
     this.contents = file.contents || null
 
     // Replay path history to ensure proper normalization and trailing sep
-    const history = Array.prototype.slice.call(file.history || [])
+    const history = file.history?.slice() ?? []
     if (file.path) {
       history.push(file.path)
     }
@@ -159,14 +170,12 @@ class File {
     this.cwd = file.cwd || process.cwd()
     this.base = file.base!
 
-    this._isVinyl = true
-
     this._symlink = null
 
     // Set custom properties
-    Object.keys(file).forEach(key => {
+    forEach(file, (value, key) => {
       if (File.isCustomProp(key)) {
-        this[key] = file[key]
+        this[key] = value
       }
     })
   }
@@ -174,14 +183,14 @@ class File {
   /**
    * Returns `true` if the file contents are a `Buffer`, otherwise `false`.
    */
-  isBuffer(): this is BufferFile {
+  isBuffer(): this is BufferFile & { contents: Buffer } {
     return Buffer.isBuffer(this.contents)
   }
 
   /**
    * Returns `true` if the file contents are a `Stream`, otherwise `false`.
    */
-  isStream(): this is StreamFile {
+  isStream(): this is StreamFile & { contents: StreamFile } {
     return isStream(this.contents)
   }
 
@@ -209,7 +218,7 @@ class File {
       return false
     }
 
-    if (this.stat && typeof this.stat.isDirectory === "function") {
+    if (this.stat && isFunction(this.stat.isDirectory)) {
       return this.stat.isDirectory()
     }
 
@@ -233,7 +242,7 @@ class File {
       return false
     }
 
-    if (this.stat && typeof this.stat.isSymbolicLink === "function") {
+    if (this.stat && isFunction(this.stat.isSymbolicLink)) {
       return this.stat.isSymbolicLink()
     }
 
@@ -250,22 +259,18 @@ class File {
    * If `file.contents` is a `Buffer` and `options.contents` is `false`, the `Buffer` reference
    * will be reused instead of copied.
    */
-  clone(opt?: { contents?: boolean; deep?: boolean } | boolean): this {
-    const self = this
-
-    if (typeof opt === "boolean") {
-      opt = {
-        deep: opt,
-        contents: true,
-      }
+  clone(opt?: CloneOptions): this {
+    let deep: boolean
+    let _contents: boolean
+    if (isBoolean(opt)) {
+      deep = opt
+      _contents = true
     } else if (!opt) {
-      opt = {
-        deep: true,
-        contents: true,
-      }
+      deep = true
+      _contents = true
     } else {
-      opt.deep = opt.deep === true
-      opt.contents = opt.contents !== false
+      deep = opt.deep === true
+      _contents = opt.contents !== false
     }
 
     // Clone our file contents
@@ -273,24 +278,24 @@ class File {
     if (this.isStream()) {
       contents = this.contents.clone()
     } else if (this.isBuffer()) {
-      contents = opt.contents ? cloneBuffer(this.contents) : this.contents
+      contents = _contents ? Buffer.from(this.contents) : this.contents
     }
 
-    const file = new this.constructor({
+    const file = new (this.constructor as typeof File)({
       cwd: this.cwd,
       base: this.base,
-      stat: this.stat ? cloneStats(this.stat) : null,
+      stat: this.stat && clone(this.stat),
       history: this.history.slice(),
       contents,
     })
 
     // Clone our custom properties
-    Object.keys(this).forEach(key => {
+    forEach(this, (value, key) => {
       if (File.isCustomProp(key)) {
-        file[key] = opt.deep ? clone(self[key], true) : self[key]
+        file[key] = deep ? cloneDeep(value) : value
       }
     })
-    return file
+    return file as this
   }
 
   /**
@@ -298,24 +303,24 @@ class File {
    * Automatically called by node's `console.log`.
    */
   inspect(): string {
-    const inspect: string[] = []
+    const inspection: string[] = []
 
     // Use relative path if possible
     const filePath = this.path ? this.relative : null
 
     if (filePath) {
-      inspect.push(`"${filePath}"`)
+      inspection.push(`"${filePath}"`)
     }
 
     if (this.isBuffer()) {
-      inspect.push(this.contents.inspect())
+      inspection.push(this.contents[inspect.custom]())
     }
 
     if (this.isStream()) {
-      inspect.push(inspectStream(this.contents))
+      inspection.push(inspectStream(this.contents))
     }
 
-    return `<File ${inspect.join(" ")}>`
+    return `<File ${inspection.join(" ")}>`
   }
 
   // Virtual attributes
@@ -332,7 +337,7 @@ class File {
 
   set contents(val) {
     if (!Buffer.isBuffer(val) && !isStream(val) && val !== null) {
-      throw new Error("File.contents can only be a Buffer, a Stream, or null.")
+      throw Error("File.contents can only be a Buffer, a Stream, or null.")
     }
 
     // Ask cloneable if the stream is a already a cloneable
@@ -356,8 +361,8 @@ class File {
   }
 
   set cwd(cwd) {
-    if (!cwd || typeof cwd !== "string") {
-      throw new Error("cwd must be a non-empty string.")
+    if (!cwd || !isString(cwd)) {
+      throw Error("cwd must be a non-empty string.")
     }
     this._cwd = removeTrailingSep(normalize(cwd))
   }
@@ -383,8 +388,8 @@ class File {
       delete this._base
       return
     }
-    if (typeof base !== "string" || !base) {
-      throw new Error("base must be a non-empty string, or null/undefined.")
+    if (!isString(base) || !base) {
+      throw Error("base must be a non-empty string, or null/undefined.")
     }
     base = removeTrailingSep(normalize(base))
     if (base !== this._cwd) {
@@ -457,7 +462,7 @@ class File {
 
   set dirname(dirname) {
     if (!this.path) {
-      throw new Error("No path specified! Can not set dirname.")
+      throw Error("No path specified! Can not set dirname.")
     }
     this.path = path.join(dirname, this.basename)
   }
@@ -524,14 +529,14 @@ class File {
    */
   get stem(): string {
     if (!this.path) {
-      throw new Error("No path specified! Can not get stem.")
+      throw Error("No path specified! Can not get stem.")
     }
     return path.basename(this.path, this.extname)
   }
 
   set stem(stem) {
     if (!this.path) {
-      throw new Error("No path specified! Can not set stem.")
+      throw Error("No path specified! Can not set stem.")
     }
     this.path = path.join(this.dirname, stem + this.extname)
   }
@@ -560,14 +565,14 @@ class File {
    */
   get extname(): string {
     if (!this.path) {
-      throw new Error("No path specified! Can not get extname.")
+      throw Error("No path specified! Can not get extname.")
     }
     return path.extname(this.path)
   }
 
   set extname(extname) {
     if (!this.path) {
-      throw new Error("No path specified! Can not set extname.")
+      throw Error("No path specified! Can not set extname.")
     }
     this.path = replaceExt(this.path, extname)
   }
@@ -584,12 +589,12 @@ class File {
    * comment for the `base` properties.
    */
   get path(): string {
-    return this.history[this.history.length - 1]
+    return last(this.history)!
   }
 
   set path(path) {
-    if (typeof path !== "string") {
-      throw new Error("path should be a string.")
+    if (!isString(path)) {
+      throw Error("path should be a string.")
     }
     path = removeTrailingSep(normalize(path))
 
@@ -611,8 +616,8 @@ class File {
 
   set symlink(symlink) {
     // TODO: should this set the mode to symbolic if set?
-    if (typeof symlink !== "string") {
-      throw new Error("symlink should be a string")
+    if (!isString(symlink)) {
+      throw Error("symlink should be a string")
     }
 
     this._symlink = removeTrailingSep(normalize(symlink))
@@ -650,8 +655,8 @@ class File {
 }
 
 // Newer Node.js versions use this symbol for custom inspection.
-if (util.inspect.custom) {
-  File.prototype[util.inspect.custom] = File.prototype.inspect
+if (inspect.custom) {
+  File.prototype[inspect.custom] = File.prototype.inspect
 }
 
 export default File

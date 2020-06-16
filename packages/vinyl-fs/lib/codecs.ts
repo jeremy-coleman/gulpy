@@ -6,6 +6,9 @@ import through from "through2"
 import { DEFAULT_ENCODING } from "./constants"
 
 class Codec {
+  codec
+  enc
+  bomAware
   constructor(codec, encoding) {
     this.codec = codec
     this.enc = codec.enc || encoding

@@ -1,4 +1,4 @@
-import { initial, last } from "lodash-es"
+import { initial, last } from "lodash"
 
 import { asyncDone } from "async-done"
 import * as nowAndLater from "now-and-later"

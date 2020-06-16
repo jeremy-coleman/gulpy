@@ -1,5 +1,5 @@
 import { ok as assert } from "assert"
-import { isFunction } from "lodash-es"
+import { isFunction } from "lodash"
 import type { Registry } from "undertaker-registry"
 import type { Task, TaskFunction } from "../index"
 

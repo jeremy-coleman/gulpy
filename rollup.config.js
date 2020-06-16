@@ -19,6 +19,7 @@ export default {
     alias({
       entries: {
         "lodash-es": "lodash",
+        "readable-stream": "stream",
       },
     }),
     resolve({ extensions }),

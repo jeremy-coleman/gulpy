@@ -15,19 +15,19 @@ var toThrough = _interopDefault(require("to-through"))
 var isValidGlob = _interopDefault(require("is-valid-glob"))
 var createResolver = _interopDefault(require("resolve-options"))
 var through = _interopDefault(require("through2"))
-var Vinyl = _interopDefault(require("vinyl"))
+var path = require("path")
+var util = require("util")
+var cloneable = _interopDefault(require("cloneable-readable"))
+var removeTrailingSep = _interopDefault(require("remove-trailing-separator"))
 var sourcemap = _interopDefault(require("vinyl-sourcemap"))
 var fs = require("fs")
 var removeBomStream = _interopDefault(require("remove-bom-stream"))
 var lazystream = _interopDefault(require("lazystream"))
 var iconv = _interopDefault(require("iconv-lite"))
 var removeBomBuffer = _interopDefault(require("remove-bom-buffer"))
-var assign = _interopDefault(require("object.assign"))
 var valueOrFunction = require("value-or-function")
-var readableStream = require("readable-stream")
 var lead = _interopDefault(require("lead"))
 var mkdirpStream = _interopDefault(require("fs-mkdirp-stream"))
-var path = require("path")
 var mkdirp = _interopDefault(require("fs-mkdirp-stream/mkdirp"))
 var os = require("os")
 var watch = _interopDefault(require("glob-watcher"))
@@ -39,6 +39,8 @@ function isRequest(stream) {
 function isChildProcess(stream) {
   return stream.stdio && Array.isArray(stream.stdio) && stream.stdio.length === 3
 }
+
+module.exports = exports = eos
 
 function eos(stream, opts, _callback) {
   if (lodash.isFunction(opts)) return eos(stream, {}, opts)
@@ -933,9 +935,379 @@ function prepareRead(optResolver) {
   return through.obj(normalize)
 }
 
+function replaceExt(nPath, ext) {
+  if (!lodash.isString(nPath)) {
+    return nPath
+  }
+
+  if (nPath.length === 0) {
+    return nPath
+  }
+
+  const nFileName = path.basename(nPath, path.extname(nPath)) + ext
+  const nFilepath = path.join(path.dirname(nPath), nFileName)
+
+  if (startsWithSingleDot(nPath)) {
+    return "." + path.sep + nFilepath
+  }
+
+  return nFilepath
+}
+
+function startsWithSingleDot(fPath) {
+  const first2chars = fPath.slice(0, 2)
+  return first2chars === "." + path.sep || first2chars === "./"
+}
+
+function isStream(stream) {
+  if (!stream) {
+    return false
+  }
+
+  if (!lodash.isFunction(stream.pipe)) {
+    return false
+  }
+
+  return true
+}
+
+function normalize(str) {
+  return str === "" ? str : path.normalize(str)
+}
+
+function inspectStream({ constructor }) {
+  let streamType = constructor.name
+
+  if (streamType === "Stream") {
+    streamType = ""
+  }
+
+  return `<${streamType}Stream>`
+}
+
+const builtInFields = [
+  "_contents",
+  "_symlink",
+  "contents",
+  "stat",
+  "history",
+  "path",
+  "_base",
+  "base",
+  "_cwd",
+  "cwd",
+]
+
+class File {
+  constructor(file = {}) {
+    var _file$history$slice, _file$history
+
+    this.history = void 0
+    this.stat = void 0
+    this.custom = void 0
+    this._isVinyl = true
+    this._symlink = void 0
+    this._contents = void 0
+    this._cwd = void 0
+    this._base = void 0
+    this.pipe = void 0
+    this.stat = file.stat || undefined
+    this.contents = file.contents || null
+    const history =
+      (_file$history$slice =
+        (_file$history = file.history) === null || _file$history === void 0
+          ? void 0
+          : _file$history.slice()) != null
+        ? _file$history$slice
+        : []
+
+    if (file.path) {
+      history.push(file.path)
+    }
+
+    this.history = []
+    history.forEach(path => {
+      this.path = path
+    })
+    this.cwd = file.cwd || process.cwd()
+    this.base = file.base
+    this._symlink = null
+    lodash.forEach(file, (value, key) => {
+      if (File.isCustomProp(key)) {
+        this[key] = value
+      }
+    })
+  }
+
+  isBuffer() {
+    return Buffer.isBuffer(this.contents)
+  }
+
+  isStream() {
+    return isStream(this.contents)
+  }
+
+  isNull() {
+    return this.contents === null
+  }
+
+  isDirectory() {
+    if (!this.isNull()) {
+      return false
+    }
+
+    if (this.stat && lodash.isFunction(this.stat.isDirectory)) {
+      return this.stat.isDirectory()
+    }
+
+    return false
+  }
+
+  isSymbolic() {
+    if (!this.isNull()) {
+      return false
+    }
+
+    if (this.stat && lodash.isFunction(this.stat.isSymbolicLink)) {
+      return this.stat.isSymbolicLink()
+    }
+
+    return false
+  }
+
+  clone(opt) {
+    let deep
+
+    let _contents
+
+    if (lodash.isBoolean(opt)) {
+      deep = opt
+      _contents = true
+    } else if (!opt) {
+      deep = true
+      _contents = true
+    } else {
+      deep = opt.deep === true
+      _contents = opt.contents !== false
+    }
+
+    let contents
+
+    if (this.isStream()) {
+      contents = this.contents.clone()
+    } else if (this.isBuffer()) {
+      contents = _contents ? Buffer.from(this.contents) : this.contents
+    }
+
+    const file = new this.constructor({
+      cwd: this.cwd,
+      base: this.base,
+      stat: this.stat && lodash.clone(this.stat),
+      history: this.history.slice(),
+      contents,
+    })
+    lodash.forEach(this, (value, key) => {
+      if (File.isCustomProp(key)) {
+        file[key] = deep ? lodash.cloneDeep(value) : value
+      }
+    })
+    return file
+  }
+
+  inspect() {
+    const inspection = []
+    const filePath = this.path ? this.relative : null
+
+    if (filePath) {
+      inspection.push(`"${filePath}"`)
+    }
+
+    if (this.isBuffer()) {
+      inspection.push(this.contents[util.inspect.custom]())
+    }
+
+    if (this.isStream()) {
+      inspection.push(inspectStream(this.contents))
+    }
+
+    return `<File ${inspection.join(" ")}>`
+  }
+
+  get contents() {
+    return this._contents
+  }
+
+  set contents(val) {
+    if (!Buffer.isBuffer(val) && !isStream(val) && val !== null) {
+      throw Error("File.contents can only be a Buffer, a Stream, or null.")
+    }
+
+    if (isStream(val) && !cloneable.isCloneable(val)) {
+      val = cloneable(val)
+    }
+
+    this._contents = val
+  }
+
+  get cwd() {
+    return this._cwd
+  }
+
+  set cwd(cwd) {
+    if (!cwd || !lodash.isString(cwd)) {
+      throw Error("cwd must be a non-empty string.")
+    }
+
+    this._cwd = removeTrailingSep(normalize(cwd))
+  }
+
+  get base() {
+    return this._base || this._cwd
+  }
+
+  set base(base) {
+    if (base == null) {
+      delete this._base
+      return
+    }
+
+    if (!lodash.isString(base) || !base) {
+      throw Error("base must be a non-empty string, or null/undefined.")
+    }
+
+    base = removeTrailingSep(normalize(base))
+
+    if (base !== this._cwd) {
+      this._base = base
+    } else {
+      delete this._base
+    }
+  }
+
+  get relative() {
+    if (!this.path) {
+      throw Error("No path specified! Can not get relative.")
+    }
+
+    return path.relative(this.base, this.path)
+  }
+
+  set relative(value) {
+    throw Error(
+      "File.relative is generated from the base and path attributes. Do not modify it."
+    )
+  }
+
+  get dirname() {
+    if (!this.path) {
+      throw Error("No path specified! Can not get dirname.")
+    }
+
+    return path.dirname(this.path)
+  }
+
+  set dirname(dirname) {
+    if (!this.path) {
+      throw Error("No path specified! Can not set dirname.")
+    }
+
+    this.path = path.join(dirname, this.basename)
+  }
+
+  get basename() {
+    if (!this.path) {
+      throw Error("No path specified! Can not get basename.")
+    }
+
+    return path.basename(this.path)
+  }
+
+  set basename(basename) {
+    if (!this.path) {
+      throw Error("No path specified! Can not set basename.")
+    }
+
+    this.path = path.join(this.dirname, basename)
+  }
+
+  get stem() {
+    if (!this.path) {
+      throw Error("No path specified! Can not get stem.")
+    }
+
+    return path.basename(this.path, this.extname)
+  }
+
+  set stem(stem) {
+    if (!this.path) {
+      throw Error("No path specified! Can not set stem.")
+    }
+
+    this.path = path.join(this.dirname, stem + this.extname)
+  }
+
+  get extname() {
+    if (!this.path) {
+      throw Error("No path specified! Can not get extname.")
+    }
+
+    return path.extname(this.path)
+  }
+
+  set extname(extname) {
+    if (!this.path) {
+      throw Error("No path specified! Can not set extname.")
+    }
+
+    this.path = replaceExt(this.path, extname)
+  }
+
+  get path() {
+    return lodash.last(this.history)
+  }
+
+  set path(path) {
+    if (!lodash.isString(path)) {
+      throw Error("path should be a string.")
+    }
+
+    path = removeTrailingSep(normalize(path))
+
+    if (path && path !== this.path) {
+      this.history.push(path)
+    }
+  }
+
+  get symlink() {
+    return this._symlink
+  }
+
+  set symlink(symlink) {
+    if (!lodash.isString(symlink)) {
+      throw Error("symlink should be a string")
+    }
+
+    this._symlink = removeTrailingSep(normalize(symlink))
+  }
+
+  static isCustomProp(key) {
+    return !builtInFields.includes(key)
+  }
+
+  static isVinyl(file) {
+    return (file && file._isVinyl === true) || false
+  }
+}
+
+File.of = file => new File(file)
+
+if (util.inspect.custom) {
+  File.prototype[util.inspect.custom] = File.prototype.inspect
+}
+
 function wrapVinyl() {
   function wrapFile(globFile, enc, callback) {
-    const file = new Vinyl(globFile)
+    const file = new File(globFile)
     callback(null, file)
   }
 
@@ -970,6 +1342,9 @@ function readDir(file, optResolver, onRead) {
 
 class Codec {
   constructor(codec, encoding) {
+    this.codec = void 0
+    this.enc = void 0
+    this.bomAware = void 0
     this.codec = codec
     this.enc = codec.enc || encoding
     this.bomAware = codec.bomAware || false
@@ -1188,7 +1563,7 @@ function readContents(optResolver) {
 const APPEND_MODE_REGEXP = /a/
 
 function closeFd(propagatedErr, fd, callback) {
-  if (typeof fd !== "number") {
+  if (!lodash.isNumber(fd)) {
     return callback(propagatedErr)
   }
 
@@ -1204,7 +1579,7 @@ function closeFd(propagatedErr, fd, callback) {
 }
 
 function isValidUnixId(id) {
-  if (typeof id !== "number") {
+  if (!lodash.isNumber(id)) {
     return false
   }
 
@@ -1374,7 +1749,7 @@ function updateMetadata(fd, file, callback) {
     const modeDiff = getModeDiff(stat.mode, file.stat.mode)
     const timesDiff = getTimesDiff(stat, file.stat)
     const ownerDiff = getOwnerDiff(stat, file.stat)
-    assign(file.stat, stat)
+    Object.assign(file.stat, stat)
 
     if (!modeDiff && !timesDiff && !ownerDiff) {
       return callback()
@@ -1507,7 +1882,7 @@ function createWriteStream(path, options, flush) {
   return new WriteStream(path, options, flush)
 }
 
-class WriteStream extends readableStream.Writable {
+class WriteStream extends stream.Writable {
   constructor(path, options, flush) {
     if (typeof options === "function") {
       flush = options
@@ -1516,6 +1891,12 @@ class WriteStream extends readableStream.Writable {
 
     options = options || {}
     super(options)
+    this.flush = void 0
+    this.path = void 0
+    this.mode = void 0
+    this.flags = void 0
+    this.fd = void 0
+    this.start = void 0
     this.flush = flush
     this.path = path
     this.mode = options.mode || DEFAULT_FILE_MODE
@@ -1527,19 +1908,18 @@ class WriteStream extends readableStream.Writable {
   }
 
   open() {
-    const self = this
-    fs.open(this.path, this.flags, this.mode, onOpen)
-
-    function onOpen(openErr, fd) {
+    const onOpen = (openErr, fd) => {
       if (openErr) {
-        self.destroy()
-        self.emit("error", openErr)
+        this.destroy()
+        this.emit("error", openErr)
         return
       }
 
-      self.fd = fd
-      self.emit("open", fd)
+      this.fd = fd
+      this.emit("open", fd)
     }
+
+    fs.open(this.path, this.flags, this.mode, onOpen)
   }
 
   _destroy(err, cb) {
@@ -1549,8 +1929,6 @@ class WriteStream extends readableStream.Writable {
   }
 
   close(cb) {
-    const that = this
-
     if (cb) {
       this.once("close", cb)
     }
@@ -1562,16 +1940,16 @@ class WriteStream extends readableStream.Writable {
       }
 
       return process.nextTick(() => {
-        that.emit("close")
+        this.emit("close")
       })
     }
 
     this.closed = true
     fs.close(this.fd, er => {
       if (er) {
-        that.emit("error", er)
+        this.emit("error", er)
       } else {
-        that.emit("close")
+        this.emit("close")
       }
     })
     this.fd = null
@@ -1586,8 +1964,6 @@ class WriteStream extends readableStream.Writable {
   }
 
   _write(data, encoding, callback) {
-    const self = this
-
     if (!Buffer.isBuffer(data)) {
       return this.emit("error", new Error("Invalid data"))
     }
@@ -1596,21 +1972,21 @@ class WriteStream extends readableStream.Writable {
       return this.once("open", onOpen)
     }
 
-    fs.write(this.fd, data, 0, data.length, null, onWrite)
-
-    function onOpen() {
-      self._write(data, encoding, callback)
+    const onOpen = () => {
+      this._write(data, encoding, callback)
     }
 
-    function onWrite(writeErr) {
+    const onWrite = writeErr => {
       if (writeErr) {
-        self.destroy()
+        this.destroy()
         callback(writeErr)
         return
       }
 
       callback()
     }
+
+    fs.write(this.fd, data, 0, data.length, null, onWrite)
   }
 }
 
@@ -1712,12 +2088,12 @@ function prepareWrite(folderResolver, optResolver) {
   }
 
   function normalize(file, _enc, cb) {
-    if (!Vinyl.isVinyl(file)) {
+    if (!File.isVinyl(file)) {
       return cb(new Error("Received a non-Vinyl object in `dest()`"))
     }
 
     if (typeof file.isSymbolic !== "function") {
-      file = new Vinyl(file)
+      file = new File(file)
     }
 
     const outFolderPath = folderResolver.resolve("outFolder", file)
@@ -2076,12 +2452,12 @@ function prepareSymlink(folderResolver, optResolver) {
   }
 
   function normalize(file, enc, cb) {
-    if (!Vinyl.isVinyl(file)) {
+    if (!File.isVinyl(file)) {
       return cb(new Error("Received a non-Vinyl object in `symlink()`"))
     }
 
     if (typeof file.isSymbolic !== "function") {
-      file = new Vinyl(file)
+      file = new File(file)
     }
 
     const cwd = path.resolve(optResolver.resolve("cwd", file))

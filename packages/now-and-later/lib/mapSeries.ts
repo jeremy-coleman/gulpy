@@ -1,4 +1,4 @@
-import { once, noop, isFunction } from "lodash-es"
+import { once, noop, isFunction } from "lodash"
 import * as helpers from "./helpers"
 
 export function mapSeries(values, iterator, extensions, done) {
@@ -34,7 +34,7 @@ export function mapSeries(values, iterator, extensions, done) {
   function next(key) {
     const value = values[key]
 
-    const storage = exts.create(value, key) || {}
+    const storage = (exts.create(value, key) as any) || {}
 
     exts.before(storage)
     iterator(value, key, once(handler))

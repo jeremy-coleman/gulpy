@@ -1,7 +1,5 @@
-import path from "path"
+import * as path from "path"
 
-function normalize(str: string) {
+export function normalize(str: string) {
   return str === "" ? str : path.normalize(str)
 }
-
-export default normalize

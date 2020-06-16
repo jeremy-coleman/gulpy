@@ -1,0 +1,5 @@
+{
+  "name": "readable-stream",
+  "version": "3.6.0",
+  "main": "index.js"
+}

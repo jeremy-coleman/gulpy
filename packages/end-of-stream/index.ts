@@ -1,4 +1,4 @@
-import { once, noop, isFunction } from "lodash-es"
+import { once, noop, isFunction } from "lodash"
 import type { ClientRequest } from "http"
 import type { ChildProcess, ChildProcessWithoutNullStreams } from "child_process"
 
@@ -27,6 +27,7 @@ type Stream =
   | ChildProcessWithoutNullStreams
 type Callback = (error?: Error | null) => void
 
+module.exports = exports = eos
 export default eos
 
 function eos(stream: Stream, callback?: Callback): () => void

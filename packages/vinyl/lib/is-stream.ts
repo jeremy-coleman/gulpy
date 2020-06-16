@@ -1,4 +1,4 @@
-import { isFunction } from "lodash-es"
+import { isFunction } from "lodash"
 
 export function isStream(stream) {
   if (!stream) {
@@ -11,5 +11,3 @@ export function isStream(stream) {
 
   return true
 }
-
-export default isStream

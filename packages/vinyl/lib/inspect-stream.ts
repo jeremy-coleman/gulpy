@@ -1,4 +1,4 @@
-function inspectStream({ constructor }) {
+export function inspectStream({ constructor }) {
   let streamType = constructor.name
   // Avoid StreamStream
   if (streamType === "Stream") {
@@ -7,5 +7,3 @@ function inspectStream({ constructor }) {
 
   return `<${streamType}Stream>`
 }
-
-export default inspectStream

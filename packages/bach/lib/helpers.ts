@@ -1,4 +1,4 @@
-import { noop, isFunction } from "lodash-es"
+import { noop, isFunction } from "lodash"
 import { ok as assert } from "assert"
 
 export function getExtensions(lastArg) {

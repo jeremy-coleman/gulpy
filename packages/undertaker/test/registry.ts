@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import type { Registry } from "undertaker-registry"
-import { noop } from "lodash-es"
+import { noop } from "lodash"
 import { Undertaker } from "../mod"
 import { DefaultRegistry } from "undertaker-registry"
 import { CommonRegistry } from "undertaker-common-tasks"

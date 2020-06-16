@@ -1,4 +1,4 @@
-import { noop } from "lodash-es"
+import { noop } from "lodash"
 
 const defaultExts = {
   create: noop,

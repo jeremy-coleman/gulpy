@@ -1,13 +1,13 @@
 import * as fs from "fs"
-import assign from "object.assign"
 import { date } from "value-or-function"
 import { Writable } from "readable-stream"
 import * as constants from "./constants"
+import { isNumber } from "lodash"
 
 const APPEND_MODE_REGEXP = /a/
 
 function closeFd(propagatedErr, fd, callback) {
-  if (typeof fd !== "number") {
+  if (!isNumber(fd)) {
     return callback(propagatedErr)
   }
 
@@ -22,15 +22,13 @@ function closeFd(propagatedErr, fd, callback) {
   }
 }
 
-function isValidUnixId(id) {
-  if (typeof id !== "number") {
+function isValidUnixId(id: any): id is number {
+  if (!isNumber(id)) {
     return false
   }
-
   if (id < 0) {
     return false
   }
-
   return true
 }
 
@@ -196,13 +194,13 @@ function updateMetadata(fd, file, callback) {
     const modeDiff = getModeDiff(stat.mode, file.stat.mode)
 
     // Check if atime/mtime need to be updated
-    const timesDiff = getTimesDiff(stat, file.stat)
+    const timesDiff = getTimesDiff(stat, file.stat)!
 
     // Check if uid/gid need to be updated
-    const ownerDiff = getOwnerDiff(stat, file.stat)
+    const ownerDiff = getOwnerDiff(stat, file.stat)!
 
     // Set file.stat to the reflect current state on disk
-    assign(file.stat, stat)
+    Object.assign(file.stat, stat)
 
     // Nothing to do
     if (!modeDiff && !timesDiff && !ownerDiff) {
@@ -242,7 +240,7 @@ function updateMetadata(fd, file, callback) {
       }
     }
 
-    function times(propagatedErr) {
+    function times(propagatedErr?) {
       fs.futimes(fd, timesDiff.atime, timesDiff.mtime, onFutimes)
 
       function onFutimes(futimesErr) {
@@ -257,7 +255,7 @@ function updateMetadata(fd, file, callback) {
       }
     }
 
-    function owner(propagatedErr) {
+    function owner(propagatedErr?) {
       fs.fchown(fd, ownerDiff.uid, ownerDiff.gid, onFchown)
 
       function onFchown(fchownErr) {
@@ -342,6 +340,13 @@ function createWriteStream(path, options, flush) {
 // Taken from node core and altered to receive a flush function and simplified
 // To be used for cleanup (like updating times/mode/etc)
 class WriteStream extends Writable {
+  flush
+  path
+  mode
+  flags
+  fd
+  start
+
   constructor(path, options, flush) {
     // Not exposed so we can avoid the case where someone doesn't use `new`
 
@@ -371,20 +376,17 @@ class WriteStream extends Writable {
   }
 
   open() {
-    const self = this
-
-    fs.open(this.path, this.flags, this.mode, onOpen)
-
-    function onOpen(openErr, fd) {
+    const onOpen = (openErr, fd) => {
       if (openErr) {
-        self.destroy()
-        self.emit("error", openErr)
+        this.destroy()
+        this.emit("error", openErr)
         return
       }
 
-      self.fd = fd
-      self.emit("open", fd)
+      this.fd = fd
+      this.emit("open", fd)
     }
+    fs.open(this.path, this.flags, this.mode, onOpen)
   }
 
   _destroy(err, cb) {
@@ -394,8 +396,6 @@ class WriteStream extends Writable {
   }
 
   close(cb) {
-    const that = this
-
     if (cb) {
       this.once("close", cb)
     }
@@ -407,7 +407,7 @@ class WriteStream extends Writable {
       }
 
       return process.nextTick(() => {
-        that.emit("close")
+        this.emit("close")
       })
     }
 
@@ -415,9 +415,9 @@ class WriteStream extends Writable {
 
     fs.close(this.fd, er => {
       if (er) {
-        that.emit("error", er)
+        this.emit("error", er)
       } else {
-        that.emit("close")
+        this.emit("close")
       }
     })
 
@@ -433,8 +433,6 @@ class WriteStream extends Writable {
   }
 
   _write(data, encoding, callback) {
-    const self = this
-
     // This is from node core but I have no idea how to get code coverage on it
     if (!Buffer.isBuffer(data)) {
       return this.emit("error", new Error("Invalid data"))
@@ -444,21 +442,21 @@ class WriteStream extends Writable {
       return this.once("open", onOpen)
     }
 
-    fs.write(this.fd, data, 0, data.length, null, onWrite)
-
-    function onOpen() {
-      self._write(data, encoding, callback)
+    const onOpen = () => {
+      this._write(data, encoding, callback)
     }
 
-    function onWrite(writeErr) {
+    const onWrite = writeErr => {
       if (writeErr) {
-        self.destroy()
+        this.destroy()
         callback(writeErr)
         return
       }
 
       callback()
     }
+
+    fs.write(this.fd, data, 0, data.length, null, onWrite)
   }
 }
 

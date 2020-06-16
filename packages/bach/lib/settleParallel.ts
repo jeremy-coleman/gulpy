@@ -1,4 +1,4 @@
-import { initial, last } from "lodash-es"
+import { initial, last } from "lodash"
 
 import { settle } from "async-settle"
 import * as nowAndLater from "now-and-later"

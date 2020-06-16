@@ -1,4 +1,4 @@
-import expect from "expect"
+import { expect } from "chai"
 import { asyncDone } from "../"
 
 function twoArg(cb) {
@@ -8,8 +8,8 @@ function twoArg(cb) {
 describe("arguments", () => {
   it("passes all arguments to the completion callback", done => {
     asyncDone(twoArg, (err, arg1, arg2) => {
-      expect(arg1).toEqual(1)
-      expect(arg2).toEqual(2)
+      expect(arg1).to.equal(1)
+      expect(arg2).to.equal(2)
       done(err)
     })
   })
