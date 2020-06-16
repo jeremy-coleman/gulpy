@@ -1,0 +1,35 @@
+{
+  "name": "end-of-stream",
+  "version": "1.4.4",
+  "description": "Call a callback when a readable/writable/duplex stream has completed or failed.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mafintosh/end-of-stream.git"
+  },
+  "scripts": {
+    "build": "tsc index.ts; sed -i '' 's/lodash-es/lodash/g' index.js && prettier --write index.js",
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "keywords": [
+    "stream",
+    "streams",
+    "callback",
+    "finish",
+    "close",
+    "end",
+    "wait"
+  ],
+  "bugs": {
+    "url": "https://github.com/mafintosh/end-of-stream/issues"
+  },
+  "homepage": "https://github.com/mafintosh/end-of-stream",
+  "main": "index.js",
+  "module": "index.ts",
+  "author": "Mathias Buus <mathiasbuus@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "tape": "^5.0.1",
+    "chai": "^4.2.0",
+    "mocha": "^8.0.1"
+  }
+}

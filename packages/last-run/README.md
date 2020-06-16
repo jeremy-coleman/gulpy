@@ -6,7 +6,7 @@
 
 # last-run
 
-Last upstream commit: [436e29e on 8 Aug 2017](https://github.com/gulpjs/last-run/commit/436e29ea837f67d2e0a574e553a8d2cc534dd5cf)
+Last upstream commit: [436e29e on 8 Aug 2017](https://github.com/gulpjs/last-run/commit/436e29ea837f67d2e0a574e553a8d2cc534dd5cf).
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![AppVeyor Build Status][appveyor-image]][appveyor-url] [![Coveralls Status][coveralls-image]][coveralls-url] [![Gitter chat][gitter-image]][gitter-url]
 

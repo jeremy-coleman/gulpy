@@ -16,14 +16,10 @@
   },
   "main": "index.ts",
   "scripts": {
-    "test": "mocha -r ts-node/register \"test/**/*.ts\"",
-    "test-types": "tsc -p test/types",
-    "azure-pipelines": "nyc mocha --async-only --reporter xunit -O output=test.xunit",
-    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
     "end-of-stream": "^1.4.4",
-    "process-nextick-args": "^2.0.1",
     "stream-exhaust": "^1.0.2"
   },
   "devDependencies": {

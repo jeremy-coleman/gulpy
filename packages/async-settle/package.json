@@ -13,7 +13,7 @@
   },
   "main": "index.ts",
   "scripts": {
-    "test": "mocha --async-only"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
     "async-done": "^1.3.2"

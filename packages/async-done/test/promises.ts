@@ -1,4 +1,4 @@
-import domain from "domain"
+import * as domain from "domain"
 import expect from "expect"
 import when from "when"
 import { asyncDone } from "../"

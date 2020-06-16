@@ -1,0 +1,35 @@
+{
+  "name": "vinyl",
+  "version": "2.2.0",
+  "description": "Virtual file format.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/vinyl",
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "dependencies": {
+    "clone": "^2.1.2",
+    "clone-buffer": "^1.0.0",
+    "clone-stats": "^1.0.0",
+    "cloneable-readable": "^2.0.1",
+    "remove-trailing-separator": "^1.1.0",
+    "replace-ext": "^2.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^8.0.1"
+  },
+  "keywords": [
+    "virtual",
+    "filesystem",
+    "file",
+    "directory",
+    "stat",
+    "path"
+  ]
+}

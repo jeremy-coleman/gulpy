@@ -20,7 +20,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "mocha --async-only"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
     "lodash-es": "^4.17.15",

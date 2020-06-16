@@ -1,5 +1,5 @@
 import { Undertaker, TaskFunction } from "undertaker"
-import vfs from "vinyl-fs"
+import * as vfs from "vinyl-fs"
 import watch from "glob-watcher"
 import { isString, isFunction } from "lodash"
 

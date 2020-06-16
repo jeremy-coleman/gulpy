@@ -1,6 +1,5 @@
-import domain from "domain"
+import * as domain from "domain"
 import eos from "end-of-stream"
-import p from "process-nextick-args"
 import { once, isFunction } from "lodash-es"
 import exhaust from "stream-exhaust"
 
@@ -129,5 +128,5 @@ export function asyncDone<R = any>(fn: AsyncTask<R>, cb: Callback<R>): void {
     }
   }
 
-  p.nextTick(asyncRunner)
+  process.nextTick(asyncRunner)
 }

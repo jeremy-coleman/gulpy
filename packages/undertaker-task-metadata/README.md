@@ -6,7 +6,7 @@
 
 # undertaker-task-metadata
 
-Last upstream commit: [f38edf2 on 8 Aug 2017](https://github.com/gulpjs/undertaker-task-metadata/commit/f38edf254fd8fd7aafebb96e67bcfb0d75ebc946)
+Last upstream commit: [f38edf2 on 8 Aug 2017](https://github.com/gulpjs/undertaker-task-metadata/commit/f38edf254fd8fd7aafebb96e67bcfb0d75ebc946).
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Gitter chat][gitter-image]][gitter-url]
 

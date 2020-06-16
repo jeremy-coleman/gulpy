@@ -1,0 +1,23 @@
+{
+  "name": "stream-exhaust",
+  "version": "1.0.2",
+  "description": "Ensure that a stream is flowing data without mutating it",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrisdickinson/stream-exhaust.git"
+  },
+  "author": "Chris Dickinson <chris@neversaw.us>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrisdickinson/stream-exhaust.git"
+  },
+  "homepage": "https://github.com/chrisdickinson/stream-exhaust.git",
+  "devDependencies": {
+    "readable-stream": "^3.6.0",
+    "through2": "^3.0.1"
+  }
+}

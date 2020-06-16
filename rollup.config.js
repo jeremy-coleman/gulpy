@@ -33,6 +33,7 @@ export default {
         "@babel/plugin-proposal-optional-catch-binding",
         "@babel/plugin-proposal-optional-chaining",
         ["@babel/plugin-proposal-class-properties", { loose: true }],
+        "babel-plugin-minify-constant-folding",
       ],
     }),
     prettier({

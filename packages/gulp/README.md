@@ -5,7 +5,7 @@
   <p align="center">The streaming build system</p>
 </p>
 
-Last upstream commit: [1ce0637 on 16 May](https://github.com/gulpjs/gulp/commit/1ce063729714517da92310c8308d50e9541e4a47)
+Last upstream commit: [1ce0637 on 16 May](https://github.com/gulpjs/gulp/commit/1ce063729714517da92310c8308d50e9541e4a47).
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Azure Pipelines Build Status][azure-pipelines-image]][azure-pipelines-url] [![Build Status][travis-image]][travis-url] [![AppVeyor Build Status][appveyor-image]][appveyor-url] [![Coveralls Status][coveralls-image]][coveralls-url] [![OpenCollective Backers][backer-badge]][backer-url] [![OpenCollective Sponsors][sponsor-badge]][sponsor-url] [![Gitter chat][gitter-image]][gitter-url]
 

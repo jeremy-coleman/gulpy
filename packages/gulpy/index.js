@@ -7,12 +7,162 @@ function _interopDefault(ex) {
 var assert = require("assert")
 var events = require("events")
 var lodash = require("lodash")
-var domain = _interopDefault(require("domain"))
-var eos = _interopDefault(require("end-of-stream"))
-var p = _interopDefault(require("process-nextick-args"))
-var exhaust = _interopDefault(require("stream-exhaust"))
-var vfs = _interopDefault(require("vinyl-fs"))
+var domain = require("domain")
+var stream = require("stream")
+var gs = _interopDefault(require("glob-stream"))
+var pumpify = _interopDefault(require("pumpify"))
+var toThrough = _interopDefault(require("to-through"))
+var isValidGlob = _interopDefault(require("is-valid-glob"))
+var createResolver = _interopDefault(require("resolve-options"))
+var through = _interopDefault(require("through2"))
+var Vinyl = _interopDefault(require("vinyl"))
+var sourcemap = _interopDefault(require("vinyl-sourcemap"))
+var fs = require("fs")
+var removeBomStream = _interopDefault(require("remove-bom-stream"))
+var lazystream = _interopDefault(require("lazystream"))
+var iconv = _interopDefault(require("iconv-lite"))
+var removeBomBuffer = _interopDefault(require("remove-bom-buffer"))
+var assign = _interopDefault(require("object.assign"))
+var valueOrFunction = require("value-or-function")
+var readableStream = require("readable-stream")
+var lead = _interopDefault(require("lead"))
+var mkdirpStream = _interopDefault(require("fs-mkdirp-stream"))
+var path = require("path")
+var mkdirp = _interopDefault(require("fs-mkdirp-stream/mkdirp"))
+var os = require("os")
 var watch = _interopDefault(require("glob-watcher"))
+
+function isRequest(stream) {
+  return stream.setHeader && typeof stream.abort === "function"
+}
+
+function isChildProcess(stream) {
+  return stream.stdio && Array.isArray(stream.stdio) && stream.stdio.length === 3
+}
+
+function eos(stream, opts, _callback) {
+  if (lodash.isFunction(opts)) return eos(stream, {}, opts)
+  if (!opts) opts = {}
+  const callback = lodash.once(_callback || lodash.noop)
+  const ws = stream._writableState
+  const rs = stream._readableState
+  let readable = opts.readable || (opts.readable !== false && stream.readable)
+  let writable = opts.writable || (opts.writable !== false && stream.writable)
+  let cancelled = false
+
+  function onLegacyFinish() {
+    if (!stream.writable) onFinish()
+  }
+
+  function onFinish() {
+    writable = false
+    if (!readable) callback.call(stream)
+  }
+
+  function onEnd() {
+    readable = false
+    if (!writable) callback.call(stream)
+  }
+
+  function onExit(exitCode) {
+    callback.call(stream, exitCode ? Error(`exited with error code: ${exitCode}`) : null)
+  }
+
+  function onError(err) {
+    callback.call(stream, err)
+  }
+
+  function onClose() {
+    process.nextTick(onCloseNextTick)
+  }
+
+  function onCloseNextTick() {
+    if (cancelled) return
+    if (readable && !(rs && rs.ended && !rs.destroyed))
+      return callback.call(stream, new Error("premature close"))
+    if (writable && !(ws && ws.ended && !ws.destroyed))
+      return callback.call(stream, new Error("premature close"))
+  }
+
+  function onRequest() {
+    stream.req.on("finish", onFinish)
+  }
+
+  if (isRequest(stream)) {
+    stream.on("complete", onFinish)
+    stream.on("abort", onClose)
+
+    if (stream.req) {
+      onRequest()
+    } else {
+      stream.on("request", onRequest)
+    }
+  } else if (writable && !ws) {
+    stream.on("end", onLegacyFinish)
+    stream.on("close", onLegacyFinish)
+  }
+
+  if (isChildProcess(stream)) {
+    stream.on("exit", onExit)
+  }
+
+  stream.on("end", onEnd)
+  stream.on("finish", onFinish)
+
+  if (opts.error !== false) {
+    stream.on("error", onError)
+  }
+
+  stream.on("close", onClose)
+  return () => {
+    var _stream$req
+
+    cancelled = true
+    stream.removeListener("complete", onFinish)
+    stream.removeListener("abort", onClose)
+    stream.removeListener("request", onRequest)
+    ;(_stream$req = stream.req) === null || _stream$req === void 0
+      ? void 0
+      : _stream$req.removeListener("finish", onFinish)
+    stream.removeListener("end", onLegacyFinish)
+    stream.removeListener("close", onLegacyFinish)
+    stream.removeListener("finish", onFinish)
+    stream.removeListener("exit", onExit)
+    stream.removeListener("end", onEnd)
+    stream.removeListener("error", onError)
+    stream.removeListener("close", onClose)
+  }
+}
+
+function resumer(stream) {
+  if (!stream.readable) {
+    return stream
+  }
+
+  if (stream._read) {
+    stream.pipe(new Sink())
+    return stream
+  }
+
+  if (typeof stream.resume === "function") {
+    stream.resume()
+    return stream
+  }
+
+  return stream
+}
+
+class Sink extends stream.Writable {
+  constructor() {
+    super({
+      objectMode: true,
+    })
+  }
+
+  _write(chunk, encoding, cb) {
+    setImmediate(cb)
+  }
+}
 
 var eosConfig = {
   error: false,
@@ -73,7 +223,7 @@ function asyncDone(fn, cb) {
 
     if (result && lodash.isFunction(result.on)) {
       d.add(result)
-      eos(exhaust(result), eosConfig, done)
+      eos(resumer(result), eosConfig, done)
       return
     }
 
@@ -88,7 +238,7 @@ function asyncDone(fn, cb) {
     }
   }
 
-  p.nextTick(asyncRunner)
+  process.nextTick(asyncRunner)
 }
 
 const defaultExts = {
@@ -635,12 +785,11 @@ class Undertaker extends events.EventEmitter {
     const args = normalizeArgs(this._registry, rest)
     const extensions = createExtensions(this)
     const fn = create(args, extensions)
-    const name = "<series>"
     metadata.set(fn, {
-      name,
+      name: "<series>",
       branch: true,
       tree: {
-        label: name,
+        label: "<series>",
         type: "function",
         branch: true,
         nodes: buildTree(args),
@@ -669,12 +818,11 @@ class Undertaker extends events.EventEmitter {
     const args = normalizeArgs(this._registry, rest)
     const extensions = createExtensions(this)
     const fn = create(args, extensions)
-    const name = "<parallel>"
     metadata.set(fn, {
-      name,
+      name: "<parallel>",
       branch: true,
       tree: {
-        label: name,
+        label: "<parallel>",
         type: "function",
         branch: true,
         nodes: buildTree(args),
@@ -737,6 +885,1315 @@ class Undertaker extends events.EventEmitter {
   }
 }
 
+const MASK_MODE = parseInt("7777", 8)
+const DEFAULT_FILE_MODE = parseInt("0666", 8)
+const DEFAULT_ENCODING = "utf8"
+
+const config = {
+  buffer: {
+    type: "boolean",
+    default: true,
+  },
+  read: {
+    type: "boolean",
+    default: true,
+  },
+  since: {
+    type: "date",
+  },
+  removeBOM: {
+    type: "boolean",
+    default: true,
+  },
+  encoding: {
+    type: ["string", "boolean"],
+    default: DEFAULT_ENCODING,
+  },
+  sourcemaps: {
+    type: "boolean",
+    default: false,
+  },
+  resolveSymlinks: {
+    type: "boolean",
+    default: true,
+  },
+}
+
+function prepareRead(optResolver) {
+  function normalize(file, enc, callback) {
+    const since = optResolver.resolve("since", file)
+
+    if (file.stat && file.stat.mtime <= since) {
+      return callback()
+    }
+
+    return callback(null, file)
+  }
+
+  return through.obj(normalize)
+}
+
+function wrapVinyl() {
+  function wrapFile(globFile, enc, callback) {
+    const file = new Vinyl(globFile)
+    callback(null, file)
+  }
+
+  return through.obj(wrapFile)
+}
+
+function sourcemapStream(optResolver) {
+  function addSourcemap(file, enc, callback) {
+    const srcMap = optResolver.resolve("sourcemaps", file)
+
+    if (!srcMap) {
+      return callback(null, file)
+    }
+
+    sourcemap.add(file, onAdd)
+
+    function onAdd(sourcemapErr, updatedFile) {
+      if (sourcemapErr) {
+        return callback(sourcemapErr)
+      }
+
+      callback(null, updatedFile)
+    }
+  }
+
+  return through.obj(addSourcemap)
+}
+
+function readDir(file, optResolver, onRead) {
+  onRead()
+}
+
+class Codec {
+  constructor(codec, encoding) {
+    this.codec = codec
+    this.enc = codec.enc || encoding
+    this.bomAware = codec.bomAware || false
+  }
+
+  encode(str) {
+    const encoder = getEncoder(this.codec)
+    const buf = encoder.write(str)
+    const end = encoder.end()
+    return end && end.length > 0 ? Buffer.concat(buf, end) : buf
+  }
+
+  encodeStream() {
+    const encoder = getEncoder(this.codec)
+    return through(
+      {
+        decodeStrings: false,
+      },
+      function (str, enc, cb) {
+        const buf = encoder.write(str)
+
+        if (buf && buf.length) {
+          this.push(buf)
+        }
+
+        cb()
+      },
+      function (cb) {
+        const buf = encoder.end()
+
+        if (buf && buf.length) {
+          this.push(buf)
+        }
+
+        cb()
+      }
+    )
+  }
+
+  decode(buf) {
+    const decoder = getDecoder(this.codec)
+    const str = decoder.write(buf)
+    const end = decoder.end()
+    return end ? str + end : str
+  }
+
+  decodeStream() {
+    const decoder = getDecoder(this.codec)
+    return through(
+      {
+        encoding: DEFAULT_ENCODING,
+      },
+      function (buf, enc, cb) {
+        const str = decoder.write(buf)
+
+        if (str && str.length) {
+          this.push(str, DEFAULT_ENCODING)
+        }
+
+        cb()
+      },
+      function (cb) {
+        const str = decoder.end()
+
+        if (str && str.length) {
+          this.push(str, DEFAULT_ENCODING)
+        }
+
+        cb()
+      }
+    )
+  }
+}
+
+function getEncoder(codec) {
+  return new codec.encoder(null, codec)
+}
+
+function getDecoder(codec) {
+  return new codec.decoder(null, codec)
+}
+
+const cache = {}
+
+function getCodec(encoding) {
+  let codec = cache[encoding]
+
+  if (!!codec || !encoding || cache.hasOwnProperty(encoding)) {
+    return codec
+  }
+
+  try {
+    codec = new Codec(iconv.getCodec(encoding), encoding)
+  } catch (err) {}
+
+  cache[encoding] = codec
+  return codec
+}
+
+getCodec(DEFAULT_ENCODING)
+
+function streamFile(file, optResolver, onRead) {
+  const encoding = optResolver.resolve("encoding", file)
+  const codec = getCodec(encoding)
+
+  if (encoding && !codec) {
+    return onRead(new Error(`Unsupported encoding: ${encoding}`))
+  }
+
+  const filePath = file.path
+  file.contents = new lazystream.Readable(() => {
+    let contents = fs.createReadStream(filePath)
+
+    if (encoding) {
+      const removeBOM = codec.bomAware && optResolver.resolve("removeBOM", file)
+
+      if (codec.enc !== DEFAULT_ENCODING) {
+        contents = contents
+          .pipe(codec.decodeStream())
+          .pipe(getCodec(DEFAULT_ENCODING).encodeStream())
+      }
+
+      if (removeBOM) {
+        contents = contents.pipe(removeBomStream())
+      }
+    }
+
+    return contents
+  })
+  onRead()
+}
+
+function bufferFile(file, optResolver, onRead) {
+  const encoding = optResolver.resolve("encoding", file)
+  const codec = getCodec(encoding)
+
+  if (encoding && !codec) {
+    return onRead(new Error(`Unsupported encoding: ${encoding}`))
+  }
+
+  fs.readFile(file.path, onReadFile)
+
+  function onReadFile(readErr, contents) {
+    if (readErr) {
+      return onRead(readErr)
+    }
+
+    if (encoding) {
+      let removeBOM = codec.bomAware && optResolver.resolve("removeBOM", file)
+
+      if (codec.enc !== DEFAULT_ENCODING) {
+        contents = codec.decode(contents)
+        removeBOM = removeBOM && contents[0] === "\ufeff"
+        contents = getCodec(DEFAULT_ENCODING).encode(contents)
+      }
+
+      if (removeBOM) {
+        contents = removeBomBuffer(contents)
+      }
+    }
+
+    file.contents = contents
+    onRead()
+  }
+}
+
+function readLink(file, optResolver, onRead) {
+  fs.readlink(file.path, onReadlink)
+
+  function onReadlink(readErr, target) {
+    if (readErr) {
+      return onRead(readErr)
+    }
+
+    file.symlink = target
+    onRead()
+  }
+}
+
+function readContents(optResolver) {
+  function readFile(file, enc, callback) {
+    const read = optResolver.resolve("read", file)
+
+    if (!read) {
+      return callback(null, file)
+    }
+
+    if (file.isDirectory()) {
+      return readDir(file, optResolver, onRead)
+    }
+
+    if (file.stat && file.stat.isSymbolicLink()) {
+      return readLink(file, optResolver, onRead)
+    }
+
+    const buffer = optResolver.resolve("buffer", file)
+
+    if (buffer) {
+      return bufferFile(file, optResolver, onRead)
+    }
+
+    return streamFile(file, optResolver, onRead)
+
+    function onRead(readErr) {
+      if (readErr) {
+        return callback(readErr)
+      }
+
+      callback(null, file)
+    }
+  }
+
+  return through.obj(readFile)
+}
+
+const APPEND_MODE_REGEXP = /a/
+
+function closeFd(propagatedErr, fd, callback) {
+  if (typeof fd !== "number") {
+    return callback(propagatedErr)
+  }
+
+  fs.close(fd, onClosed)
+
+  function onClosed(closeErr) {
+    if (propagatedErr || closeErr) {
+      return callback(propagatedErr || closeErr)
+    }
+
+    callback()
+  }
+}
+
+function isValidUnixId(id) {
+  if (typeof id !== "number") {
+    return false
+  }
+
+  if (id < 0) {
+    return false
+  }
+
+  return true
+}
+
+function getFlags({ append, overwrite }) {
+  let flags = !append ? "w" : "a"
+
+  if (!overwrite) {
+    flags += "x"
+  }
+
+  return flags
+}
+
+function isFatalOverwriteError(err, flags) {
+  if (!err) {
+    return false
+  }
+
+  if (err.code === "EEXIST" && flags[1] === "x") {
+    return false
+  }
+
+  return true
+}
+
+function isFatalUnlinkError(err) {
+  if (!err || err.code === "ENOENT") {
+    return false
+  }
+
+  return true
+}
+
+function getModeDiff(fsMode, vinylMode) {
+  let modeDiff = 0
+
+  if (typeof vinylMode === "number") {
+    modeDiff = (vinylMode ^ fsMode) & MASK_MODE
+  }
+
+  return modeDiff
+}
+
+function getTimesDiff(fsStat, vinylStat) {
+  const mtime = valueOrFunction.date(vinylStat.mtime) || 0
+
+  if (!mtime) {
+    return
+  }
+
+  let atime = valueOrFunction.date(vinylStat.atime) || 0
+
+  if (+mtime === +fsStat.mtime && +atime === +fsStat.atime) {
+    return
+  }
+
+  if (!atime) {
+    atime = valueOrFunction.date(fsStat.atime) || undefined
+  }
+
+  const timesDiff = {
+    mtime: vinylStat.mtime,
+    atime,
+  }
+  return timesDiff
+}
+
+function getOwnerDiff(fsStat, vinylStat) {
+  if (!isValidUnixId(vinylStat.uid) && !isValidUnixId(vinylStat.gid)) {
+    return
+  }
+
+  if (
+    (!isValidUnixId(fsStat.uid) && !isValidUnixId(vinylStat.uid)) ||
+    (!isValidUnixId(fsStat.gid) && !isValidUnixId(vinylStat.gid))
+  ) {
+    return
+  }
+
+  let uid = fsStat.uid
+
+  if (isValidUnixId(vinylStat.uid)) {
+    uid = vinylStat.uid
+  }
+
+  let gid = fsStat.gid
+
+  if (isValidUnixId(vinylStat.gid)) {
+    gid = vinylStat.gid
+  }
+
+  if (uid === fsStat.uid && gid === fsStat.gid) {
+    return
+  }
+
+  const ownerDiff = {
+    uid,
+    gid,
+  }
+  return ownerDiff
+}
+
+function isOwner(fsStat) {
+  const hasGetuid = typeof process.getuid === "function"
+  const hasGeteuid = typeof process.geteuid === "function"
+
+  if (!hasGeteuid && !hasGetuid) {
+    return false
+  }
+
+  let uid
+
+  if (hasGeteuid) {
+    uid = process.geteuid()
+  } else {
+    uid = process.getuid()
+  }
+
+  if (fsStat.uid !== uid && uid !== 0) {
+    return false
+  }
+
+  return true
+}
+
+function reflectStat(path, file, callback) {
+  fs.stat(path, onStat)
+
+  function onStat(statErr, stat) {
+    if (statErr) {
+      return callback(statErr)
+    }
+
+    file.stat = stat
+    callback()
+  }
+}
+
+function reflectLinkStat(path, file, callback) {
+  fs.lstat(path, onLstat)
+
+  function onLstat(lstatErr, stat) {
+    if (lstatErr) {
+      return callback(lstatErr)
+    }
+
+    file.stat = stat
+    callback()
+  }
+}
+
+function updateMetadata(fd, file, callback) {
+  fs.fstat(fd, onStat)
+
+  function onStat(statErr, stat) {
+    if (statErr) {
+      return callback(statErr)
+    }
+
+    const modeDiff = getModeDiff(stat.mode, file.stat.mode)
+    const timesDiff = getTimesDiff(stat, file.stat)
+    const ownerDiff = getOwnerDiff(stat, file.stat)
+    assign(file.stat, stat)
+
+    if (!modeDiff && !timesDiff && !ownerDiff) {
+      return callback()
+    }
+
+    if (!isOwner(stat)) {
+      return callback()
+    }
+
+    if (modeDiff) {
+      return mode()
+    }
+
+    if (timesDiff) {
+      return times()
+    }
+
+    owner()
+
+    function mode() {
+      const mode = stat.mode ^ modeDiff
+      fs.fchmod(fd, mode, onFchmod)
+
+      function onFchmod(fchmodErr) {
+        if (!fchmodErr) {
+          file.stat.mode = mode
+        }
+
+        if (timesDiff) {
+          return times(fchmodErr)
+        }
+
+        if (ownerDiff) {
+          return owner(fchmodErr)
+        }
+
+        callback(fchmodErr)
+      }
+    }
+
+    function times(propagatedErr) {
+      fs.futimes(fd, timesDiff.atime, timesDiff.mtime, onFutimes)
+
+      function onFutimes(futimesErr) {
+        if (!futimesErr) {
+          file.stat.atime = timesDiff.atime
+          file.stat.mtime = timesDiff.mtime
+        }
+
+        if (ownerDiff) {
+          return owner(propagatedErr || futimesErr)
+        }
+
+        callback(propagatedErr || futimesErr)
+      }
+    }
+
+    function owner(propagatedErr) {
+      fs.fchown(fd, ownerDiff.uid, ownerDiff.gid, onFchown)
+
+      function onFchown(fchownErr) {
+        if (!fchownErr) {
+          file.stat.uid = ownerDiff.uid
+          file.stat.gid = ownerDiff.gid
+        }
+
+        callback(propagatedErr || fchownErr)
+      }
+    }
+  }
+}
+
+function symlink(srcPath, destPath, { flags, type }, callback) {
+  if (flags === "w") {
+    fs.unlink(destPath, onUnlink)
+  } else {
+    fs.symlink(srcPath, destPath, type, onSymlink)
+  }
+
+  function onUnlink(unlinkErr) {
+    if (isFatalUnlinkError(unlinkErr)) {
+      return callback(unlinkErr)
+    }
+
+    fs.symlink(srcPath, destPath, type, onSymlink)
+  }
+
+  function onSymlink(symlinkErr) {
+    if (isFatalOverwriteError(symlinkErr, flags)) {
+      return callback(symlinkErr)
+    }
+
+    callback()
+  }
+}
+
+function writeFile(filepath, data, options, callback) {
+  if (typeof options === "function") {
+    callback = options
+    options = {}
+  }
+
+  if (!Buffer.isBuffer(data)) {
+    return callback(new TypeError("Data must be a Buffer"))
+  }
+
+  if (!options) {
+    options = {}
+  }
+
+  const mode = options.mode || DEFAULT_FILE_MODE
+  const flags = options.flags || "w"
+  const position = APPEND_MODE_REGEXP.test(flags) ? null : 0
+  fs.open(filepath, flags, mode, onOpen)
+
+  function onOpen(openErr, fd) {
+    if (openErr) {
+      return onComplete(openErr)
+    }
+
+    fs.write(fd, data, 0, data.length, position, onComplete)
+
+    function onComplete(writeErr) {
+      callback(writeErr, fd)
+    }
+  }
+}
+
+function createWriteStream(path, options, flush) {
+  return new WriteStream(path, options, flush)
+}
+
+class WriteStream extends readableStream.Writable {
+  constructor(path, options, flush) {
+    if (typeof options === "function") {
+      flush = options
+      options = null
+    }
+
+    options = options || {}
+    super(options)
+    this.flush = flush
+    this.path = path
+    this.mode = options.mode || DEFAULT_FILE_MODE
+    this.flags = options.flags || "w"
+    this.fd = null
+    this.start = null
+    this.open()
+    this.once("finish", this.close)
+  }
+
+  open() {
+    const self = this
+    fs.open(this.path, this.flags, this.mode, onOpen)
+
+    function onOpen(openErr, fd) {
+      if (openErr) {
+        self.destroy()
+        self.emit("error", openErr)
+        return
+      }
+
+      self.fd = fd
+      self.emit("open", fd)
+    }
+  }
+
+  _destroy(err, cb) {
+    this.close(err2 => {
+      cb(err || err2)
+    })
+  }
+
+  close(cb) {
+    const that = this
+
+    if (cb) {
+      this.once("close", cb)
+    }
+
+    if (this.closed || typeof this.fd !== "number") {
+      if (typeof this.fd !== "number") {
+        this.once("open", closeOnOpen)
+        return
+      }
+
+      return process.nextTick(() => {
+        that.emit("close")
+      })
+    }
+
+    this.closed = true
+    fs.close(this.fd, er => {
+      if (er) {
+        that.emit("error", er)
+      } else {
+        that.emit("close")
+      }
+    })
+    this.fd = null
+  }
+
+  _final(callback) {
+    if (typeof this.flush !== "function") {
+      return callback()
+    }
+
+    this.flush(this.fd, callback)
+  }
+
+  _write(data, encoding, callback) {
+    const self = this
+
+    if (!Buffer.isBuffer(data)) {
+      return this.emit("error", new Error("Invalid data"))
+    }
+
+    if (typeof this.fd !== "number") {
+      return this.once("open", onOpen)
+    }
+
+    fs.write(this.fd, data, 0, data.length, null, onWrite)
+
+    function onOpen() {
+      self._write(data, encoding, callback)
+    }
+
+    function onWrite(writeErr) {
+      if (writeErr) {
+        self.destroy()
+        callback(writeErr)
+        return
+      }
+
+      callback()
+    }
+  }
+}
+
+WriteStream.prototype.destroySoon = WriteStream.prototype.end
+
+function closeOnOpen() {
+  this.close()
+}
+
+function resolveSymlinks(optResolver) {
+  function resolveFile(file, _enc, callback) {
+    reflectLinkStat(file.path, file, onReflect)
+
+    function onReflect(statErr) {
+      if (statErr) {
+        return callback(statErr)
+      }
+
+      if (!file.stat.isSymbolicLink()) {
+        return callback(null, file)
+      }
+
+      const resolveSymlinks = optResolver.resolve("resolveSymlinks", file)
+
+      if (!resolveSymlinks) {
+        return callback(null, file)
+      }
+
+      reflectStat(file.path, file, onReflect)
+    }
+  }
+
+  return through.obj(resolveFile)
+}
+
+function src(glob, opt) {
+  const optResolver = createResolver(config, opt)
+
+  if (!isValidGlob(glob)) {
+    throw new Error(`Invalid glob argument: ${glob}`)
+  }
+
+  const streams = [
+    gs(glob, opt),
+    wrapVinyl(),
+    resolveSymlinks(optResolver),
+    prepareRead(optResolver),
+    readContents(optResolver),
+    sourcemapStream(optResolver),
+  ]
+  const outputStream = pumpify.obj(streams)
+  return toThrough(outputStream)
+}
+
+const config$1 = {
+  cwd: {
+    type: "string",
+    default: process.cwd,
+  },
+  mode: {
+    type: "number",
+
+    default({ stat }) {
+      return stat ? stat.mode : null
+    },
+  },
+  dirMode: {
+    type: "number",
+  },
+  overwrite: {
+    type: "boolean",
+    default: true,
+  },
+  append: {
+    type: "boolean",
+    default: false,
+  },
+  encoding: {
+    type: ["string", "boolean"],
+    default: DEFAULT_ENCODING,
+  },
+  sourcemaps: {
+    type: ["string", "boolean"],
+    default: false,
+  },
+  relativeSymlinks: {
+    type: "boolean",
+    default: false,
+  },
+  useJunctions: {
+    type: "boolean",
+    default: true,
+  },
+}
+
+function prepareWrite(folderResolver, optResolver) {
+  if (!folderResolver) {
+    throw new Error("Invalid output folder")
+  }
+
+  function normalize(file, _enc, cb) {
+    if (!Vinyl.isVinyl(file)) {
+      return cb(new Error("Received a non-Vinyl object in `dest()`"))
+    }
+
+    if (typeof file.isSymbolic !== "function") {
+      file = new Vinyl(file)
+    }
+
+    const outFolderPath = folderResolver.resolve("outFolder", file)
+
+    if (!outFolderPath) {
+      return cb(new Error("Invalid output folder"))
+    }
+
+    const cwd = path.resolve(optResolver.resolve("cwd", file))
+    const basePath = path.resolve(cwd, outFolderPath)
+    const writePath = path.resolve(basePath, file.relative)
+    file.cwd = cwd
+    file.base = basePath
+    file.path = writePath
+
+    if (!file.isSymbolic()) {
+      const mode = optResolver.resolve("mode", file)
+      file.stat = file.stat || new fs.Stats()
+      file.stat.mode = mode
+    }
+
+    cb(null, file)
+  }
+
+  return through.obj(normalize)
+}
+
+function sourcemapStream$1(optResolver) {
+  function saveSourcemap(file, enc, callback) {
+    const self = this
+    const srcMap = optResolver.resolve("sourcemaps", file)
+
+    if (!srcMap) {
+      return callback(null, file)
+    }
+
+    const srcMapLocation = typeof srcMap === "string" ? srcMap : undefined
+    sourcemap.write(file, srcMapLocation, onWrite)
+
+    function onWrite(sourcemapErr, updatedFile, sourcemapFile) {
+      if (sourcemapErr) {
+        return callback(sourcemapErr)
+      }
+
+      self.push(updatedFile)
+
+      if (sourcemapFile) {
+        self.push(sourcemapFile)
+      }
+
+      callback()
+    }
+  }
+
+  return through.obj(saveSourcemap)
+}
+
+function writeDir(file, optResolver, onWritten) {
+  mkdirp(file.path, file.stat.mode, onMkdirp)
+
+  function onMkdirp(mkdirpErr) {
+    if (mkdirpErr) {
+      return onWritten(mkdirpErr)
+    }
+
+    fs.open(file.path, "r", onOpen)
+  }
+
+  function onOpen(openErr, fd) {
+    if (isInaccessible(openErr)) {
+      return closeFd(null, fd, onWritten)
+    }
+
+    if (openErr) {
+      return closeFd(openErr, fd, onWritten)
+    }
+
+    updateMetadata(fd, file, onUpdate)
+
+    function onUpdate(updateErr) {
+      closeFd(updateErr, fd, onWritten)
+    }
+  }
+}
+
+function isInaccessible(err) {
+  if (!err) {
+    return false
+  }
+
+  if (err.code === "EACCES") {
+    return true
+  }
+
+  return false
+}
+
+function writeStream(file, optResolver, onWritten) {
+  const flags = getFlags({
+    overwrite: optResolver.resolve("overwrite", file),
+    append: optResolver.resolve("append", file),
+  })
+  const encoding = optResolver.resolve("encoding", file)
+  const codec = getCodec(encoding)
+
+  if (encoding && !codec) {
+    return onWritten(new Error(`Unsupported encoding: ${encoding}`))
+  }
+
+  const opt = {
+    mode: file.stat.mode,
+    flags,
+  }
+  const outStream = createWriteStream(file.path, opt, onFlush)
+  let contents = file.contents
+
+  if (encoding && encoding.enc !== DEFAULT_ENCODING) {
+    contents = contents
+      .pipe(getCodec(DEFAULT_ENCODING).decodeStream())
+      .pipe(codec.encodeStream())
+  }
+
+  file.contents.once("error", onComplete)
+  outStream.once("error", onComplete)
+  outStream.once("finish", onComplete)
+  contents.pipe(outStream)
+
+  function onComplete(streamErr) {
+    file.contents.removeListener("error", onComplete)
+    outStream.removeListener("error", onComplete)
+    outStream.removeListener("finish", onComplete)
+    outStream.once("close", onClose)
+    outStream.end()
+
+    function onClose(closeErr) {
+      onWritten(streamErr || closeErr)
+    }
+  }
+
+  function onFlush(fd, callback) {
+    file.contents.removeListener("error", onComplete)
+    streamFile(
+      file,
+      {
+        resolve,
+      },
+      complete
+    )
+
+    function resolve(key) {
+      if (key === "encoding") {
+        return encoding
+      }
+
+      if (key === "removeBOM") {
+        return false
+      }
+
+      throw new Error(`Eek! stub resolver doesn't have ${key}`)
+    }
+
+    function complete() {
+      if (typeof fd !== "number") {
+        return callback()
+      }
+
+      updateMetadata(fd, file, callback)
+    }
+  }
+}
+
+function writeBuffer(file, optResolver, onWritten) {
+  const flags = getFlags({
+    overwrite: optResolver.resolve("overwrite", file),
+    append: optResolver.resolve("append", file),
+  })
+  const encoding = optResolver.resolve("encoding", file)
+  const codec = getCodec(encoding)
+
+  if (encoding && !codec) {
+    return onWritten(new Error(`Unsupported encoding: ${encoding}`))
+  }
+
+  const opt = {
+    mode: file.stat.mode,
+    flags,
+  }
+  let contents = file.contents
+
+  if (encoding && codec.enc !== DEFAULT_ENCODING) {
+    contents = getCodec(DEFAULT_ENCODING).decode(contents)
+    contents = codec.encode(contents)
+  }
+
+  writeFile(file.path, contents, opt, onWriteFile)
+
+  function onWriteFile(writeErr, fd) {
+    if (writeErr) {
+      return closeFd(writeErr, fd, onWritten)
+    }
+
+    updateMetadata(fd, file, onUpdate)
+
+    function onUpdate(updateErr) {
+      closeFd(updateErr, fd, onWritten)
+    }
+  }
+}
+
+const isWindows = os.platform() === "win32"
+
+function writeSymbolicLink(file, optResolver, onWritten) {
+  if (!file.symlink) {
+    return onWritten(new Error("Missing symlink property on symbolic vinyl"))
+  }
+
+  const isRelative = optResolver.resolve("relativeSymlinks", file)
+  const flags = getFlags({
+    overwrite: optResolver.resolve("overwrite", file),
+    append: optResolver.resolve("append", file),
+  })
+
+  if (!isWindows) {
+    return createLinkWithType("file")
+  }
+
+  reflectStat(file.symlink, file, onReflect)
+
+  function onReflect(statErr) {
+    if (statErr && statErr.code !== "ENOENT") {
+      return onWritten(statErr)
+    }
+
+    const useJunctions = optResolver.resolve("useJunctions", file)
+    const dirType = useJunctions ? "junction" : "dir"
+    const type = !statErr && file.isDirectory() ? dirType : "file"
+    createLinkWithType(type)
+  }
+
+  function createLinkWithType(type) {
+    if (isRelative && type !== "junction") {
+      file.symlink = path.relative(file.base, file.symlink)
+    }
+
+    const opts = {
+      flags,
+      type,
+    }
+    symlink(file.symlink, file.path, opts, onSymlink)
+
+    function onSymlink(symlinkErr) {
+      if (symlinkErr) {
+        return onWritten(symlinkErr)
+      }
+
+      reflectLinkStat(file.path, file, onWritten)
+    }
+  }
+}
+
+function writeContents(optResolver) {
+  function writeFile(file, enc, callback) {
+    if (file.isSymbolic()) {
+      return writeSymbolicLink(file, optResolver, onWritten)
+    }
+
+    if (file.isDirectory()) {
+      return writeDir(file, optResolver, onWritten)
+    }
+
+    if (file.isStream()) {
+      return writeStream(file, optResolver, onWritten)
+    }
+
+    if (file.isBuffer()) {
+      return writeBuffer(file, optResolver, onWritten)
+    }
+
+    if (file.isNull()) {
+      return onWritten()
+    }
+
+    function onWritten(writeErr) {
+      const flags = getFlags({
+        overwrite: optResolver.resolve("overwrite", file),
+        append: optResolver.resolve("append", file),
+      })
+
+      if (isFatalOverwriteError(writeErr, flags)) {
+        return callback(writeErr)
+      }
+
+      callback(null, file)
+    }
+  }
+
+  return through.obj(writeFile)
+}
+
+const folderConfig = {
+  outFolder: {
+    type: "string",
+  },
+}
+function dest(outFolder, opt) {
+  if (!outFolder) {
+    throw new Error(
+      "Invalid dest() folder argument. Please specify a non-empty string or a function."
+    )
+  }
+
+  const optResolver = createResolver(config$1, opt)
+  const folderResolver = createResolver(folderConfig, {
+    outFolder,
+  })
+
+  function dirpath(file, callback) {
+    const dirMode = optResolver.resolve("dirMode", file)
+    callback(null, file.dirname, dirMode)
+  }
+
+  const saveStream = pumpify.obj(
+    prepareWrite(folderResolver, optResolver),
+    sourcemapStream$1(optResolver),
+    mkdirpStream.obj(dirpath),
+    writeContents(optResolver)
+  )
+  return lead(saveStream)
+}
+
+const config$2 = {
+  cwd: {
+    type: "string",
+    default: process.cwd,
+  },
+  dirMode: {
+    type: "number",
+  },
+  overwrite: {
+    type: "boolean",
+    default: true,
+  },
+  relativeSymlinks: {
+    type: "boolean",
+    default: false,
+  },
+  useJunctions: {
+    type: "boolean",
+    default: true,
+  },
+}
+
+function prepareSymlink(folderResolver, optResolver) {
+  if (!folderResolver) {
+    throw new Error("Invalid output folder")
+  }
+
+  function normalize(file, enc, cb) {
+    if (!Vinyl.isVinyl(file)) {
+      return cb(new Error("Received a non-Vinyl object in `symlink()`"))
+    }
+
+    if (typeof file.isSymbolic !== "function") {
+      file = new Vinyl(file)
+    }
+
+    const cwd = path.resolve(optResolver.resolve("cwd", file))
+    const outFolderPath = folderResolver.resolve("outFolder", file)
+
+    if (!outFolderPath) {
+      return cb(new Error("Invalid output folder"))
+    }
+
+    const basePath = path.resolve(cwd, outFolderPath)
+    const writePath = path.resolve(basePath, file.relative)
+    file.stat = file.stat || new fs.Stats()
+    file.cwd = cwd
+    file.base = basePath
+    file.symlink = file.path
+    file.path = writePath
+    file.contents = null
+    cb(null, file)
+  }
+
+  return through.obj(normalize)
+}
+
+const isWindows$1 = os.platform() === "win32"
+
+function linkStream(optResolver) {
+  function linkFile(file, _enc, callback) {
+    const isRelative = optResolver.resolve("relativeSymlinks", file)
+    const flags = getFlags({
+      overwrite: optResolver.resolve("overwrite", file),
+      append: false,
+    })
+
+    if (!isWindows$1) {
+      return createLinkWithType("file")
+    }
+
+    reflectStat(file.symlink, file, onReflectTarget)
+
+    function onReflectTarget(statErr) {
+      if (statErr && statErr.code !== "ENOENT") {
+        return callback(statErr)
+      }
+
+      const useJunctions = optResolver.resolve("useJunctions", file)
+      const dirType = useJunctions ? "junction" : "dir"
+      const type = !statErr && file.isDirectory() ? dirType : "file"
+      createLinkWithType(type)
+    }
+
+    function createLinkWithType(type) {
+      if (isRelative && type !== "junction") {
+        file.symlink = path.relative(file.base, file.symlink)
+      }
+
+      const opts = {
+        flags,
+        type,
+      }
+      symlink(file.symlink, file.path, opts, onSymlink)
+    }
+
+    function onSymlink(symlinkErr) {
+      if (symlinkErr) {
+        return callback(symlinkErr)
+      }
+
+      reflectLinkStat(file.path, file, onReflectLink)
+    }
+
+    function onReflectLink(reflectErr) {
+      if (reflectErr) {
+        return callback(reflectErr)
+      }
+
+      callback(null, file)
+    }
+  }
+
+  return through.obj(linkFile)
+}
+
+const folderConfig$1 = {
+  outFolder: {
+    type: "string",
+  },
+}
+function symlink$1(outFolder, opt) {
+  if (!outFolder) {
+    throw new Error(
+      "Invalid symlink() folder argument. Please specify a non-empty string or a function."
+    )
+  }
+
+  const optResolver = createResolver(config$2, opt)
+  const folderResolver = createResolver(folderConfig$1, {
+    outFolder,
+  })
+
+  function dirpath(file, callback) {
+    const dirMode = optResolver.resolve("dirMode", file)
+    callback(null, file.dirname, dirMode)
+  }
+
+  const stream = pumpify.obj(
+    prepareSymlink(folderResolver, optResolver),
+    mkdirpStream.obj(dirpath),
+    linkStream(optResolver)
+  )
+  return lead(stream)
+}
+
 class Gulp extends Undertaker {
   constructor() {
     super()
@@ -748,9 +2205,9 @@ class Gulp extends Undertaker {
     this.registry = this.registry.bind(this)
     this.tree = this.tree.bind(this)
     this.lastRun = this.lastRun.bind(this)
-    this.src = vfs.src.bind(this)
-    this.dest = vfs.dest.bind(this)
-    this.symlink = vfs.symlink.bind(this)
+    this.src = src.bind(this)
+    this.dest = dest.bind(this)
+    this.symlink = symlink$1.bind(this)
   }
 
   watch(glob, opt, task) {
