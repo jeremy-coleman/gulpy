@@ -3,7 +3,7 @@ import { expect } from "chai"
 
 import from from "from2"
 import concat from "concat-stream"
-import pipe from "pump"
+import pipe from "pump2"
 
 import getCodec from "../lib/codecs"
 import { DEFAULT_ENCODING } from "../lib/constants"

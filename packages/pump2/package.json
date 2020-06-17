@@ -1,0 +1,20 @@
+{
+  "name": "pump2",
+  "version": "3.0.0",
+  "repository": "git://github.com/mafintosh/pump.git",
+  "license": "MIT",
+  "description": "pipe streams together and close all of them if one of them closes",
+  "browser": {
+    "fs": false
+  },
+  "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>",
+  "dependencies": {
+    "end-of-stream": "^1.4.4",
+    "once": "^1.4.0"
+  },
+  "scripts": {
+    "build": "tsc index.ts; sed -i '' 's/lodash-es/lodash/g' index.js && prettier --write index.js",
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "main": "index.ts"
+}

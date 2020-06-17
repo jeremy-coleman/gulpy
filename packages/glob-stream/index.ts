@@ -116,7 +116,7 @@ function globStream(globs: string | string[], opt?: Options) {
   }
 }
 
-function indexGreaterThan(index) {
+function indexGreaterThan(index: number) {
   return obj => obj.index > index
 }
 

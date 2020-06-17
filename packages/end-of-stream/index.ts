@@ -1,8 +1,9 @@
 import { once, noop, isFunction } from "lodash"
 import type { ClientRequest } from "http"
+import * as stream from "stream"
 import type { ChildProcess, ChildProcessWithoutNullStreams } from "child_process"
 
-function isRequest(stream): stream is ClientRequest {
+export function isRequest(stream): stream is ClientRequest {
   return stream.setHeader && isFunction(stream.abort)
 }
 
@@ -20,7 +21,8 @@ interface Options {
   error?: boolean
 }
 
-type Stream =
+export type Stream =
+  | stream.Stream
   | NodeJS.ReadableStream
   | NodeJS.WritableStream
   | ChildProcess
@@ -33,7 +35,7 @@ export default eos
 function eos(stream: Stream, callback?: Callback): () => void
 function eos(stream: Stream, options: Options, callback?: Callback): () => void
 
-function eos(stream: Stream, opts?: Options | Callback, _callback?: Callback) {
+function eos(stream: any, opts?: Options | Callback, _callback?: Callback) {
   if (isFunction(opts)) return eos(stream, {}, opts)
   if (!opts) opts = {}
 

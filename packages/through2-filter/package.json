@@ -1,0 +1,28 @@
+{
+  "name": "through2-filter",
+  "version": "3.0.0",
+  "description": "A through2 to create an Array.prototype.filter analog for streams.",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:brycebaril/through2-filter.git"
+  },
+  "author": "Bryce B. Baril",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/brycebaril/through2-filter/issues"
+  },
+  "devDependencies": {
+    "stream-spigot": "^3.0.6",
+    "concat-stream": "^2.0.0"
+  },
+  "dependencies": {
+    "through2": "~3.0.1"
+  },
+  "main": "index.ts"
+}

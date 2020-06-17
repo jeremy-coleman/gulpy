@@ -31,7 +31,7 @@ const noop: TransformFunction = (chunk, _enc, callback) => {
 }
 
 type TransformCallback = (err?: any, data?: any) => void
-type TransformFunction<T extends Transform = Transform> = (
+export type TransformFunction<T extends Transform = Transform> = (
   this: T,
   chunk: any,
   enc: BufferEncoding,
@@ -77,17 +77,16 @@ function through2<T extends Transform>(
 }
 
 // main export, just make me a transform stream!
-const main = through2<Transform>((options, transform, flush) => {
+export const main = through2<Transform>((options, transform, flush) => {
   const t2 = new DestroyableTransform(options)
   t2._transform = transform
   if (flush) t2._flush = flush
   return t2
 })
 
-module.exports = exports = main
 export default main
 
-interface Through2Constructor extends Transform {
+export interface Through2Constructor extends Transform {
   new (opts?: DuplexOptions): Transform
   (opts?: DuplexOptions): Transform
   options: DuplexOptions
@@ -97,8 +96,10 @@ interface Through2Constructor extends Transform {
 // with a constructor call
 export const ctor = through2<Through2Constructor>((options, transform, flush) => {
   function Through2(override?: DuplexOptions) {
-    if (!(this instanceof Through2)) return new (Through2 as any)(override)
-    this.options = Object.assign({}, options, override)
+    if (!(this instanceof Through2)) {
+      return new (Through2 as any)(override)
+    }
+    this.options = { ...options, ...override }
     Transform.call(this, this.options)
   }
 

@@ -1,4 +1,4 @@
-import glob from "glob"
+import { Glob, IGlob } from "glob"
 import { Readable } from "stream"
 import globParent from "glob-parent"
 import toAbsoluteGlob from "to-absolute-glob"
@@ -22,18 +22,18 @@ function globIsSingular({ minimatch }) {
 }
 
 class GlobStream extends Readable {
-  constructor(ourGlob, negatives, opt) {
-    const ourOpt = Object.assign({}, opt)
+  #glob: IGlob
 
+  constructor(ourGlob: string, negatives, opt) {
     super({
       objectMode: true,
-      highWaterMark: ourOpt.highWaterMark || 16,
+      highWaterMark: opt.highWaterMark || 16,
     })
+
+    const ourOpt = { ...opt }
 
     // Delete `highWaterMark` after inheriting from Readable
     delete ourOpt.highWaterMark
-
-    const self = this
 
     function resolveNegatives(negative) {
       return toAbsoluteGlob(negative, ourOpt)
@@ -53,48 +53,48 @@ class GlobStream extends Readable {
     // Delete `root` after all resolving done
     delete ourOpt.root
 
-    const globber = new glob.Glob(ourGlob, ourOpt)
-    this._globber = globber
+    const glob = new Glob(ourGlob, ourOpt)
+    this.#glob = glob
 
     let found = false
 
-    globber.on("match", filepath => {
+    glob.on("match", filepath => {
       found = true
       const obj = {
         cwd,
         base: basePath,
         path: removeTrailingSeparator(filepath),
       }
-      if (!self.push(obj)) {
-        globber.pause()
+      if (!this.push(obj)) {
+        glob.pause()
       }
     })
 
-    globber.once("end", () => {
-      if (allowEmpty !== true && !found && globIsSingular(globber)) {
+    glob.once("end", () => {
+      if (allowEmpty !== true && !found && globIsSingular(glob)) {
         const err = new Error(globErrMessage1 + ourGlob + globErrMessage2)
 
-        return self.destroy(err)
+        return this.destroy(err)
       }
 
-      self.push(null)
+      this.push(null)
     })
 
-    function onError(err) {
-      self.destroy(err)
+    const onError = err => {
+      this.destroy(err)
     }
 
-    globber.once("error", onError)
+    glob.once("error", onError)
   }
 
   _read() {
-    this._globber.resume()
+    this.#glob.resume()
   }
 
   destroy(err) {
     const self = this
 
-    this._globber.abort()
+    this.#glob.abort()
 
     process.nextTick(() => {
       if (err) {

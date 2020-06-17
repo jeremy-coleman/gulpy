@@ -140,4 +140,5 @@ function concat(opts, cb?) {
   return new ConcatStream(opts, cb)
 }
 
+export { concat }
 export default concat

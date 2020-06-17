@@ -9,11 +9,13 @@ function main() {
     repo="https://github.com/${repo}.git"
   fi
 
-  git clone "$repo"
+  git clone --depth=1 "$repo"
   cd "$1" || return
-  rm -rf .git .gitignore .travis.yml .github .eslintrc .editorconfig .gitattributes .jscsrc appveyor.xml
+  rm -rf .git .gitignore .travis.yml .github .eslintrc .editorconfig .gitattributes .jscsrc appveyor.xml CONTRIBUTING.md
   ren .js .ts
-  ren .tson .json
+
+  jq '.main = "index.ts" | del(.files, .keywords) | .scripts //= {} | .scripts.test = "mocha -r ts-node/register \"test/**/*.ts\""' package.tson > package.json
+  rm -rf *.tson
   ncu -u
 }
 

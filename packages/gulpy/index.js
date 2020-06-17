@@ -9,18 +9,17 @@ var events = require("events")
 var lodash = require("lodash")
 var domain = require("domain")
 var stream = require("stream")
-var unique = _interopDefault(require("unique-stream"))
-var pump = _interopDefault(require("pump"))
-var Duplexify = _interopDefault(require("duplexify"))
-var isNegatedGlob = _interopDefault(require("is-negated-glob"))
-var glob = _interopDefault(require("glob"))
+var stream__default = _interopDefault(stream)
+var util = require("util")
+var inherits = _interopDefault(require("inherits"))
+var shift = _interopDefault(require("stream-shift"))
+var glob = require("glob")
 var globParent = _interopDefault(require("glob-parent"))
 var toAbsoluteGlob = _interopDefault(require("to-absolute-glob"))
 var removeTrailingSep = _interopDefault(require("remove-trailing-separator"))
 var toThrough = _interopDefault(require("to-through"))
 var isValidGlob = _interopDefault(require("is-valid-glob"))
 var createResolver = _interopDefault(require("resolve-options"))
-var util = require("util")
 var path = require("path")
 var cloneable = _interopDefault(require("cloneable-readable"))
 var sourcemap = _interopDefault(require("vinyl-sourcemap"))
@@ -34,8 +33,6 @@ var lead = _interopDefault(require("lead"))
 var fs$1 = require("fs-extra")
 var os = require("os")
 var chokidar = _interopDefault(require("chokidar"))
-var debounce = _interopDefault(require("just-debounce"))
-var defaults = _interopDefault(require("object.defaults/immutable"))
 var anymatch = _interopDefault(require("anymatch"))
 
 function isRequest(stream) {
@@ -967,6 +964,356 @@ class OrderedStreams extends stream.Readable {
   _read() {}
 }
 
+class DestroyableTransform extends stream.Transform {
+  constructor(...args) {
+    super(...args)
+    this._destroyed = false
+  }
+
+  destroy(err) {
+    if (this._destroyed) return
+    this._destroyed = true
+    process.nextTick(() => {
+      if (err) this.emit("error", err)
+      this.emit("close")
+    })
+  }
+}
+
+const noop = (chunk, _enc, callback) => {
+  callback(null, chunk)
+}
+
+function through2(construct) {
+  const fn = (options, transform, flush) => {
+    if (lodash.isFunction(options)) {
+      flush = transform
+      transform = options
+      options = {}
+    }
+
+    if (!lodash.isFunction(transform)) transform = noop
+    if (!lodash.isFunction(flush)) flush = undefined
+    return construct(options, transform, flush)
+  }
+
+  return fn
+}
+
+const main = through2((options, transform, flush) => {
+  const t2 = new DestroyableTransform(options)
+  t2._transform = transform
+  if (flush) t2._flush = flush
+  return t2
+})
+const ctor = through2((options, transform, flush) => {
+  function Through2(override) {
+    if (!(this instanceof Through2)) {
+      return new Through2(override)
+    }
+
+    this.options = { ...options, ...override }
+    stream.Transform.call(this, this.options)
+  }
+
+  util.inherits(Through2, DestroyableTransform)
+  Through2.prototype._transform = transform
+  if (flush) Through2.prototype._flush = flush
+  return Through2
+})
+
+function ctor$1(fn, options) {
+  const Filter = ctor(options, function (chunk, _encoding, callback) {
+    if (options === null || options === void 0 ? void 0 : options.wantStrings)
+      chunk = chunk.toString()
+
+    try {
+      if (fn.call(this, chunk, this._index++)) this.push(chunk)
+      return callback()
+    } catch (e) {
+      return callback(e)
+    }
+  })
+  Filter.prototype._index = 0
+  return Filter
+}
+function make(fn, options) {
+  return ctor$1(fn, options)()
+}
+function obj(fn, options) {
+  return make(fn, {
+    objectMode: true,
+    highWaterMark: 16,
+    ...options,
+  })
+}
+
+function unique(by, keyStore = new Set()) {
+  const keyfn = lodash.isString(by)
+    ? data => data[by]
+    : lodash.isFunction(by)
+    ? by
+    : JSON.stringify
+  return obj(data => {
+    const key = keyfn(data)
+
+    if (keyStore.has(key)) {
+      return false
+    }
+
+    keyStore.add(key)
+    return true
+  })
+}
+
+const SIGNAL_FLUSH =
+  Buffer.from && Buffer.from !== Uint8Array.from ? Buffer.from([0]) : new Buffer([0])
+
+const onuncork = (self, fn) => {
+  if (self._corked) self.once("uncork", fn)
+  else fn()
+}
+
+const autoDestroy = (self, err) => {
+  if (self._autoDestroy) self.destroy(err)
+}
+
+const destroyer = (self, end) => err => {
+  if (err) autoDestroy(self, err.message === "premature close" ? null : err)
+  else if (end && !self._ended) self.end()
+}
+
+const end = (ws, fn) => {
+  if (!ws) return fn()
+  if (ws._writableState && ws._writableState.finished) return fn()
+  if (ws._writableState) return ws.end(fn)
+  ws.end()
+  fn()
+}
+
+const noop$1 = () => {}
+
+const toStreams2 = rs =>
+  new stream__default.Readable({
+    objectMode: true,
+    highWaterMark: 16,
+  }).wrap(rs)
+
+class Duplexify {
+  constructor(writable, readable, opts) {
+    if (!(this instanceof Duplexify)) return new Duplexify(writable, readable, opts)
+    stream__default.Duplex.call(this, opts)
+    this._writable = null
+    this._readable = null
+    this._readable2 = null
+    this._autoDestroy = !opts || opts.autoDestroy !== false
+    this._forwardDestroy = !opts || opts.destroy !== false
+    this._forwardEnd = !opts || opts.end !== false
+    this._corked = 1
+    this._ondrain = null
+    this._drained = false
+    this._forwarding = false
+    this._unwrite = null
+    this._unread = null
+    this._ended = false
+    this.destroyed = false
+    if (writable) this.setWritable(writable)
+    if (readable) this.setReadable(readable)
+  }
+
+  cork() {
+    if (++this._corked === 1) this.emit("cork")
+  }
+
+  uncork() {
+    if (this._corked && --this._corked === 0) this.emit("uncork")
+  }
+
+  setWritable(writable) {
+    if (this._unwrite) this._unwrite()
+
+    if (this.destroyed) {
+      if (writable && writable.destroy) writable.destroy()
+      return
+    }
+
+    if (writable === null || writable === false) {
+      this.end()
+      return
+    }
+
+    const self = this
+    const unend = eos(
+      writable,
+      {
+        writable: true,
+        readable: false,
+      },
+      destroyer(this, this._forwardEnd)
+    )
+
+    const ondrain = () => {
+      const ondrain = self._ondrain
+      self._ondrain = null
+      if (ondrain) ondrain()
+    }
+
+    const clear = () => {
+      self._writable.removeListener("drain", ondrain)
+
+      unend()
+    }
+
+    if (this._unwrite) process.nextTick(ondrain)
+    this._writable = writable
+
+    this._writable.on("drain", ondrain)
+
+    this._unwrite = clear
+    this.uncork()
+  }
+
+  setReadable(readable) {
+    if (this._unread) this._unread()
+
+    if (this.destroyed) {
+      if (readable && readable.destroy) readable.destroy()
+      return
+    }
+
+    if (readable === null || readable === false) {
+      this.push(null)
+      this.resume()
+      return
+    }
+
+    const self = this
+    const unend = eos(
+      readable,
+      {
+        writable: false,
+        readable: true,
+      },
+      destroyer(this)
+    )
+
+    const onreadable = () => {
+      self._forward()
+    }
+
+    const onend = () => {
+      self.push(null)
+    }
+
+    const clear = () => {
+      self._readable2.removeListener("readable", onreadable)
+
+      self._readable2.removeListener("end", onend)
+
+      unend()
+    }
+
+    this._drained = true
+    this._readable = readable
+    this._readable2 = readable._readableState ? readable : toStreams2(readable)
+
+    this._readable2.on("readable", onreadable)
+
+    this._readable2.on("end", onend)
+
+    this._unread = clear
+
+    this._forward()
+  }
+
+  _read() {
+    this._drained = true
+
+    this._forward()
+  }
+
+  _forward() {
+    if (this._forwarding || !this._readable2 || !this._drained) return
+    this._forwarding = true
+    let data
+
+    while (this._drained && (data = shift(this._readable2)) !== null) {
+      if (this.destroyed) continue
+      this._drained = this.push(data)
+    }
+
+    this._forwarding = false
+  }
+
+  destroy(err, cb) {
+    if (!cb) cb = noop$1
+    if (this.destroyed) return cb(null)
+    this.destroyed = true
+    const self = this
+    process.nextTick(() => {
+      self._destroy(err)
+
+      cb(null)
+    })
+  }
+
+  _destroy(err) {
+    if (err) {
+      const ondrain = this._ondrain
+      this._ondrain = null
+      if (ondrain) ondrain(err)
+      else this.emit("error", err)
+    }
+
+    if (this._forwardDestroy) {
+      if (this._readable && this._readable.destroy) this._readable.destroy()
+      if (this._writable && this._writable.destroy) this._writable.destroy()
+    }
+
+    this.emit("close")
+  }
+
+  _write(data, enc, cb) {
+    if (this.destroyed) return
+    if (this._corked) return onuncork(this, this._write.bind(this, data, enc, cb))
+    if (data === SIGNAL_FLUSH) return this._finish(cb)
+    if (!this._writable) return cb()
+    if (this._writable.write(data) === false) this._ondrain = cb
+    else if (!this.destroyed) cb()
+  }
+
+  _finish(cb) {
+    const self = this
+    this.emit("preend")
+    onuncork(this, () => {
+      end(self._forwardEnd && self._writable, () => {
+        if (self._writableState.prefinished === false)
+          self._writableState.prefinished = true
+        self.emit("prefinish")
+        onuncork(self, cb)
+      })
+    })
+  }
+
+  end(data, enc, cb) {
+    if (typeof data === "function") return this.end(null, null, data)
+    if (typeof enc === "function") return this.end(data, null, enc)
+    this._ended = true
+    if (data) this.write(data)
+    if (!this._writableState.ending) this.write(SIGNAL_FLUSH)
+    return stream__default.Writable.prototype.end.call(this, cb)
+  }
+}
+
+inherits(Duplexify, stream__default.Duplex)
+
+Duplexify.obj = (writable, readable, opts) => {
+  if (!opts) opts = {}
+  opts.objectMode = true
+  opts.highWaterMark = 16
+  return new Duplexify(writable, readable, opts)
+}
+
 const toArray = args => {
   if (!args.length) return []
   return Array.isArray(args[0]) ? args[0] : Array.prototype.slice.call(args)
@@ -1017,12 +1364,45 @@ var pumpify = define({
   autoDestroy: false,
   destroy: false,
 })
-const obj = define({
+const obj$1 = define({
   autoDestroy: false,
   destroy: false,
   objectMode: true,
   highWaterMark: 16,
 })
+
+function isNegatedGlob(pattern) {
+  if (typeof pattern !== "string") {
+    throw new TypeError("expected a string")
+  }
+
+  const glob = {
+    negated: false,
+    pattern,
+    original: pattern,
+  }
+
+  if (pattern[0] === "!" && pattern[1] !== "(") {
+    glob.negated = true
+    glob.pattern = pattern.slice(1)
+  }
+
+  return glob
+}
+
+var id = 0
+
+function _classPrivateFieldLooseKey(name) {
+  return "__private_" + id++ + "_" + name
+}
+
+function _classPrivateFieldLooseBase(receiver, privateKey) {
+  if (!Object.prototype.hasOwnProperty.call(receiver, privateKey)) {
+    throw new TypeError("attempted to use private field on non-instance")
+  }
+
+  return receiver
+}
 
 const globErrMessage1 = "File not found with singular glob: "
 const globErrMessage2 = " (if this was purposeful, use `allowEmpty` option)"
@@ -1043,13 +1423,16 @@ function globIsSingular({ minimatch }) {
 
 class GlobStream extends stream.Readable {
   constructor(ourGlob, negatives, opt) {
-    const ourOpt = Object.assign({}, opt)
     super({
       objectMode: true,
-      highWaterMark: ourOpt.highWaterMark || 16,
+      highWaterMark: opt.highWaterMark || 16,
     })
+    Object.defineProperty(this, _glob, {
+      writable: true,
+      value: void 0,
+    })
+    const ourOpt = { ...opt }
     delete ourOpt.highWaterMark
-    const self = this
 
     function resolveNegatives(negative) {
       return toAbsoluteGlob(negative, ourOpt)
@@ -1062,10 +1445,10 @@ class GlobStream extends stream.Readable {
     const basePath = ourOpt.base || getBasePath(ourGlob, ourOpt)
     ourGlob = toAbsoluteGlob(ourGlob, ourOpt)
     delete ourOpt.root
-    const globber = new glob.Glob(ourGlob, ourOpt)
-    this._globber = globber
+    const glob$1 = new glob.Glob(ourGlob, ourOpt)
+    _classPrivateFieldLooseBase(this, _glob)[_glob] = glob$1
     let found = false
-    globber.on("match", filepath => {
+    glob$1.on("match", filepath => {
       found = true
       const obj = {
         cwd,
@@ -1073,34 +1456,34 @@ class GlobStream extends stream.Readable {
         path: removeTrailingSep(filepath),
       }
 
-      if (!self.push(obj)) {
-        globber.pause()
+      if (!this.push(obj)) {
+        glob$1.pause()
       }
     })
-    globber.once("end", () => {
-      if (allowEmpty !== true && !found && globIsSingular(globber)) {
+    glob$1.once("end", () => {
+      if (allowEmpty !== true && !found && globIsSingular(glob$1)) {
         const err = new Error(globErrMessage1 + ourGlob + globErrMessage2)
-        return self.destroy(err)
+        return this.destroy(err)
       }
 
-      self.push(null)
+      this.push(null)
     })
 
-    function onError(err) {
-      self.destroy(err)
+    const onError = err => {
+      this.destroy(err)
     }
 
-    globber.once("error", onError)
+    glob$1.once("error", onError)
   }
 
   _read() {
-    this._globber.resume()
+    _classPrivateFieldLooseBase(this, _glob)[_glob].resume()
   }
 
   destroy(err) {
     const self = this
 
-    this._globber.abort()
+    _classPrivateFieldLooseBase(this, _glob)[_glob].abort()
 
     process.nextTick(() => {
       if (err) {
@@ -1111,6 +1494,8 @@ class GlobStream extends stream.Readable {
     })
   }
 }
+
+var _glob = _classPrivateFieldLooseKey("glob")
 
 function globStream(globs, opt) {
   if (!opt) {
@@ -1168,7 +1553,7 @@ function globStream(globs, opt) {
   const streams = positives.map(streamFromPositive)
   const aggregate = new OrderedStreams(streams)
   const uniqueStream = unique(ourOpt.uniqueBy)
-  return obj(aggregate, uniqueStream)
+  return obj$1(aggregate, uniqueStream)
 
   function streamFromPositive({ index, glob }) {
     const negativeGlobs = negatives
@@ -1220,50 +1605,6 @@ const config = {
     default: true,
   },
 }
-
-class DestroyableTransform extends stream.Transform {
-  constructor(...args) {
-    super(...args)
-    this._destroyed = false
-  }
-
-  destroy(err) {
-    if (this._destroyed) return
-    this._destroyed = true
-    process.nextTick(() => {
-      if (err) this.emit("error", err)
-      this.emit("close")
-    })
-  }
-}
-
-const noop = (chunk, _enc, callback) => {
-  callback(null, chunk)
-}
-
-function through2(construct) {
-  const fn = (options, transform, flush) => {
-    if (lodash.isFunction(options)) {
-      flush = transform
-      transform = options
-      options = {}
-    }
-
-    if (!lodash.isFunction(transform)) transform = noop
-    if (!lodash.isFunction(flush)) flush = undefined
-    return construct(options, transform, flush)
-  }
-
-  return fn
-}
-
-const main = through2((options, transform, flush) => {
-  const t2 = new DestroyableTransform(options)
-  t2._transform = transform
-  if (flush) t2._flush = flush
-  return t2
-})
-module.exports = exports = main
 
 function prepareRead(optResolver) {
   function normalize(file, enc, callback) {
@@ -2859,7 +3200,7 @@ function dest(outFolder, opt) {
     callback(null, file.dirname, dirMode)
   }
 
-  const saveStream = obj(
+  const saveStream = obj$1(
     prepareWrite(folderResolver, optResolver),
     sourcemapStream$1(optResolver),
     mkdirpStream.obj(dirpath),
@@ -3044,7 +3385,7 @@ function watch(glob, options, cb) {
     options = {}
   }
 
-  const opt = defaults(options, defaultOpts)
+  const opt = lodash.defaults(options, defaultOpts)
 
   if (!Array.isArray(opt.events)) {
     opt.events = [opt.events]
@@ -3120,7 +3461,7 @@ function watch(glob, options, cb) {
   let fn
 
   if (lodash.isFunction(cb)) {
-    fn = debounce(onChange, opt.delay)
+    fn = lodash.debounce(onChange, opt.delay)
   }
 
   function watchEvent(eventName) {

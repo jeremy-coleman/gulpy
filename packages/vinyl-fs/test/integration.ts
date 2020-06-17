@@ -7,7 +7,7 @@ import isWindows from "./utils/is-windows"
 import testStreams from "./utils/test-streams"
 import testConstants from "./utils/test-constants"
 import concat from "concat-stream"
-import pipe from "pump"
+import pipe from "pump2"
 
 const count = testStreams.count
 

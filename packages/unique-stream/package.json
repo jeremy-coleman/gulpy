@@ -1,0 +1,16 @@
+{
+  "name": "unique-stream",
+  "version": "2.3.1",
+  "description": "node.js through stream that emits a unique stream of objects based on criteria",
+  "repository": "eugeneware/unique-stream",
+  "author": "Eugene Ware <eugene@noblesamurai.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\"",
+    "coverage": "istanbul cover _mocha"
+  },
+  "dependencies": {
+    "through2-filter": "^3.0.0"
+  },
+  "main": "index.ts"
+}

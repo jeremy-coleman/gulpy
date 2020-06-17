@@ -7,7 +7,7 @@ import File from "../index"
 
 import from from "from2"
 import concat from "concat-stream"
-import pipe from "pump"
+import pipe from "pump2"
 
 const isCloneable = cloneable.isCloneable
 

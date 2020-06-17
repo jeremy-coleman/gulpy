@@ -7,7 +7,7 @@ import mkdirp from "fs-mkdirp-stream/mkdirp"
 import * as fo from "../lib/file-operations"
 import * as constants from "../lib/constants"
 import from from "from2"
-import pipe from "pump"
+import pipe from "pump2"
 
 const DEFAULT_FILE_MODE = constants.DEFAULT_FILE_MODE
 
