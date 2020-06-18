@@ -23,7 +23,7 @@ export function map(values, iterator, extensions?, done?) {
   // Return the same type as passed in
   const results = helpers.initializeResults(values)
 
-  const exts = helpers.defaultExtensions(extensions)
+  const exts = extensions
 
   if (length === 0) {
     return done(null, results)
@@ -37,18 +37,18 @@ export function map(values, iterator, extensions?, done?) {
   function next(key) {
     const value = values[key]
 
-    const storage = (exts.create(value, key) as any) || {}
+    const storage = (exts.create?.(value, key) as any) || {}
 
-    exts.before(storage)
+    exts.before?.(storage)
     iterator(value, key, once(handler))
 
     function handler(err, result) {
       if (err) {
-        exts.error(err, storage)
+        exts.error?.(err, storage)
         return done(err, results)
       }
 
-      exts.after(result, storage)
+      exts.after?.(result, storage)
       results[key] = result
       if (--count === 0) {
         done(err, results)

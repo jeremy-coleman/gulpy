@@ -23,15 +23,7 @@
     "fill-range": "^7.0.1",
     "gulp-format-md": "^2.0.0",
     "mocha": "^8.0.1",
-    "nyc": "^15.1.0",
     "time-require": "github:jonschlinkert/time-require"
-  },
-  "nyc": {
-    "reporter": [
-      "html",
-      "lcov",
-      "text-summary"
-    ]
   },
   "verb": {
     "toc": {

@@ -47,7 +47,7 @@ describe("promises", () => {
     })
     d.run(() => {
       asyncDone(success, () => {
-        throw new Error("Boom")
+        throw Error("Boom")
       })
     })
   })

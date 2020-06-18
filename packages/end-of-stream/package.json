@@ -1,5 +1,5 @@
 {
-  "name": "end-of-stream",
+  "name": "@local/end-of-stream",
   "version": "1.4.4",
   "description": "Call a callback when a readable/writable/duplex stream has completed or failed.",
   "repository": {

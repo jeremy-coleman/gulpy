@@ -1,4 +1,5 @@
 import normalize from "@local/value-or-function"
+import { isFunction } from "lodash"
 
 const slice = Array.prototype.slice
 
@@ -24,7 +25,7 @@ function createResolver(config = {}, options = {}) {
     let option = options[key]
 
     if (option != null) {
-      if (typeof option === "function") {
+      if (isFunction(option)) {
         return
       }
       option = normalize.call(resolver, definition.type, option)
@@ -35,7 +36,7 @@ function createResolver(config = {}, options = {}) {
     }
 
     const fallback = definition.default
-    if (option == null && typeof fallback !== "function") {
+    if (option == null && !isFunction(fallback)) {
       constants[key] = fallback
       return fallback
     }
@@ -57,7 +58,7 @@ function createResolver(config = {}, options = {}) {
     }
 
     if (stack.includes(key)) {
-      throw new Error("Recursive resolution denied.")
+      throw Error("Recursive resolution denied.")
     }
 
     option = options[key]
@@ -71,7 +72,7 @@ function createResolver(config = {}, options = {}) {
 
       if (option == null) {
         option = fallback
-        if (typeof option === "function") {
+        if (isFunction(option)) {
           option = option.apply(resolver, appliedArgs)
         }
       }

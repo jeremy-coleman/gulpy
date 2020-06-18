@@ -7,6 +7,7 @@ import {
   REGEX_SPECIAL_CHARS,
   REGEX_SPECIAL_CHARS_GLOBAL,
 } from "./constants"
+import { isBoolean } from "lodash"
 
 export function isObject(val) {
   return val !== null && typeof val === "object" && !Array.isArray(val)
@@ -41,7 +42,7 @@ export function supportsLookbehinds() {
 }
 
 export function isWindows(options) {
-  if (options && typeof options.windows === "boolean") {
+  if (options && isBoolean(options.windows)) {
     return options.windows
   }
   return win32 === true || path.sep === "\\"

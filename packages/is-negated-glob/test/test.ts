@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import is from "./"
+import is from ".."
 
 describe("is-negated-glob", () => {
   describe("API", () => {

@@ -74,7 +74,7 @@ streamtest.versions.forEach(version => {
     t.plan(2)
 
     const stream = new FirstChunkStream({ chunkSize: 7 }, async () => {
-      throw new Error("Ho!")
+      throw Error("Ho!")
     })
 
     stream.on("error", error => {

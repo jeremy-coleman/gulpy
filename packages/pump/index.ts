@@ -1,6 +1,6 @@
 import { once, isFunction } from "lodash"
-import eos, { isRequest } from "end-of-stream"
-import type { Stream } from "end-of-stream"
+import eos, { isRequest } from "@local/end-of-stream"
+import type { Stream } from "@local/end-of-stream"
 import type { Writable } from "stream"
 
 const isWritable = (stream: any): stream is Writable => isFunction(stream.destroy)
@@ -38,7 +38,7 @@ const pipe = (from, to) => from.pipe(to)
 
 export const pump = (...streams: Stream[]) =>
   new Promise<Stream>((resolve, reject) => {
-    if (streams.length < 2) throw new Error("pump requires two streams per minimum")
+    if (streams.length < 2) throw Error("pump requires two streams per minimum")
 
     let error: Error
     const destroys = streams.map((stream, i) => {

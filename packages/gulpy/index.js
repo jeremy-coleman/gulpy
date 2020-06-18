@@ -145,26 +145,9 @@ class Sink extends stream.Writable {
   }
 }
 
-var eosConfig = {
+const eosConfig = {
   error: false,
 }
-
-function rethrowAsync(err) {
-  process.nextTick(rethrow)
-
-  function rethrow() {
-    throw err
-  }
-}
-
-function tryCatch(fn, args) {
-  try {
-    return fn.apply(null, args)
-  } catch (err) {
-    rethrowAsync(err)
-  }
-}
-
 function asyncDone(fn, cb) {
   cb = lodash.once(cb)
   const d = domain.create()
@@ -174,18 +157,21 @@ function asyncDone(fn, cb) {
   function done(...rest) {
     d.removeListener("error", onError)
     d.exit()
-    return tryCatch(cb, rest)
+
+    try {
+      return cb(...rest)
+    } catch (e) {
+      process.nextTick(() => {
+        throw e
+      })
+    }
   }
 
   function onSuccess(result) {
     done(null, result)
   }
 
-  function onError(error) {
-    if (!error) {
-      error = new Error("Promise rejected without Error")
-    }
-
+  function onError(error = Error("Promise rejected without Error")) {
     done(error)
   }
 
@@ -222,20 +208,6 @@ function asyncDone(fn, cb) {
   process.nextTick(asyncRunner)
 }
 
-const defaultExts = {
-  create: lodash.noop,
-  before: lodash.noop,
-  after: lodash.noop,
-  error: lodash.noop,
-}
-function defaultExtensions(extensions = {}) {
-  return {
-    create: extensions.create || defaultExts.create,
-    before: extensions.before || defaultExts.before,
-    after: extensions.after || defaultExts.after,
-    error: extensions.error || defaultExts.error,
-  }
-}
 function initializeResults(values) {
   const keys = Object.keys(values)
   const results = Array.isArray(values) ? [] : {}
@@ -266,7 +238,7 @@ function map(values, iterator, extensions, done) {
   let count = length
   let idx = 0
   const results = initializeResults(values)
-  const exts = defaultExtensions(extensions)
+  const exts = extensions
 
   if (length === 0) {
     return done(null, results)
@@ -278,18 +250,33 @@ function map(values, iterator, extensions, done) {
   }
 
   function next(key) {
+    var _exts$create, _exts$before
+
     const value = values[key]
-    const storage = exts.create(value, key) || {}
-    exts.before(storage)
+    const storage =
+      ((_exts$create = exts.create) === null || _exts$create === void 0
+        ? void 0
+        : _exts$create.call(exts, value, key)) || {}
+    ;(_exts$before = exts.before) === null || _exts$before === void 0
+      ? void 0
+      : _exts$before.call(exts, storage)
     iterator(value, key, lodash.once(handler))
 
     function handler(err, result) {
+      var _exts$after
+
       if (err) {
-        exts.error(err, storage)
+        var _exts$error
+
+        ;(_exts$error = exts.error) === null || _exts$error === void 0
+          ? void 0
+          : _exts$error.call(exts, err, storage)
         return done(err, results)
       }
 
-      exts.after(result, storage)
+      ;(_exts$after = exts.after) === null || _exts$after === void 0
+        ? void 0
+        : _exts$after.call(exts, result, storage)
       results[key] = result
 
       if (--count === 0) {
@@ -314,7 +301,7 @@ function mapSeries(values, iterator, extensions, done) {
   const length = keys.length
   let idx = 0
   const results = initializeResults(values)
-  const exts = defaultExtensions(extensions)
+  const exts = extensions
 
   if (length === 0) {
     return done(null, results)
@@ -324,18 +311,33 @@ function mapSeries(values, iterator, extensions, done) {
   next(key)
 
   function next(key) {
+    var _exts$create, _exts$before
+
     const value = values[key]
-    const storage = exts.create(value, key) || {}
-    exts.before(storage)
+    const storage =
+      ((_exts$create = exts.create) === null || _exts$create === void 0
+        ? void 0
+        : _exts$create.call(exts, value, key)) || {}
+    ;(_exts$before = exts.before) === null || _exts$before === void 0
+      ? void 0
+      : _exts$before.call(exts, storage)
     iterator(value, key, lodash.once(handler))
 
     function handler(err, result) {
+      var _exts$after
+
       if (err) {
-        exts.error(err, storage)
+        var _exts$error
+
+        ;(_exts$error = exts.error) === null || _exts$error === void 0
+          ? void 0
+          : _exts$error.call(exts, err, storage)
         return done(err, results)
       }
 
-      exts.after(result, storage)
+      ;(_exts$after = exts.after) === null || _exts$after === void 0
+        ? void 0
+        : _exts$after.call(exts, result, storage)
       results[key] = result
 
       if (++idx >= length) {
@@ -411,10 +413,6 @@ function verifyArguments(args) {
   return args
 }
 
-function iterator(fn, _key, cb) {
-  return asyncDone(fn, cb)
-}
-
 function series(...rest) {
   let args = verifyArguments(rest)
   const extensions = getExtensions(lodash.last(args))
@@ -424,14 +422,10 @@ function series(...rest) {
   }
 
   function series(done) {
-    mapSeries(args, iterator, extensions, done)
+    mapSeries(args, (fn, _key, cb) => asyncDone(fn, cb), extensions, done)
   }
 
   return series
-}
-
-function iterator$1(fn, _key, cb) {
-  return asyncDone(fn, cb)
 }
 
 function parallel(...rest) {
@@ -443,7 +437,7 @@ function parallel(...rest) {
   }
 
   function parallel(done) {
-    map(args, iterator$1, extensions, done)
+    map(args, (fn, _key, cb) => asyncDone(fn, cb), extensions, done)
   }
 
   return parallel
@@ -468,7 +462,7 @@ function settle(fn, done) {
   })
 }
 
-function iterator$2(fn, _key, cb) {
+function iterator(fn, _key, cb) {
   return settle(fn, cb)
 }
 
@@ -482,13 +476,13 @@ function settleSeries(...rest) {
 
   function settleSeries(done) {
     const onSettled$1 = onSettled(done)
-    mapSeries(args, iterator$2, extensions, onSettled$1)
+    mapSeries(args, iterator, extensions, onSettled$1)
   }
 
   return settleSeries
 }
 
-function iterator$3(fn, _key, cb) {
+function iterator$1(fn, _key, cb) {
   return settle(fn, cb)
 }
 
@@ -502,7 +496,7 @@ function settleParallel(...rest) {
 
   function settleParallel(done) {
     const onSettled$1 = onSettled(done)
-    map(args, iterator$3, extensions, onSettled$1)
+    map(args, iterator$1, extensions, onSettled$1)
   }
 
   return settleParallel
@@ -874,7 +868,7 @@ function isReadable({ pipe, readable, _read, _readableState }) {
 
 function addStream(streams, stream) {
   if (!isReadable(stream)) {
-    throw new Error("All input streams must be readable")
+    throw Error("All input streams must be readable")
   }
 
   const self = this
@@ -1683,7 +1677,7 @@ function globStream(globs, opt) {
 
   function sortGlobs(globString, index) {
     if (!lodash.isString(globString)) {
-      throw new Error(`Invalid glob at index ${index}`)
+      throw Error(`Invalid glob at index ${index}`)
     }
 
     const glob = isNegatedGlob(globString)
@@ -1695,7 +1689,7 @@ function globStream(globs, opt) {
   }
 
   if (positives.length === 0) {
-    throw new Error("Missing positive glob")
+    throw Error("Missing positive glob")
   }
 
   const streams = positives.map(streamFromPositive)
@@ -1772,7 +1766,7 @@ function toThrough(readable) {
 
 const types = ["object", "number", "string", "symbol", "boolean", "date", "function"]
 function normalize(coercer, value) {
-  if (typeof value === "function") {
+  if (lodash.isFunction(value)) {
     if (coercer === "function") {
       return value
     }
@@ -1784,7 +1778,7 @@ function normalize(coercer, value) {
 }
 
 function coerce(ctx, coercer, value) {
-  if (typeof coercer === "string") {
+  if (lodash.isString(coercer)) {
     if (coerce[coercer]) {
       return coerce[coercer].call(ctx, value)
     }
@@ -1792,7 +1786,7 @@ function coerce(ctx, coercer, value) {
     return typeOf(coercer, value)
   }
 
-  if (typeof coercer === "function") {
+  if (lodash.isFunction(coercer)) {
     return coercer.call(ctx, value)
   }
 
@@ -1805,10 +1799,12 @@ function coerce(ctx, coercer, value) {
 }
 
 coerce.string = value => {
+  var _value
+
   if (
-    value != null &&
-    typeof value === "object" &&
-    typeof value.toString === "function"
+    lodash.isFunction(
+      (_value = value) === null || _value === void 0 ? void 0 : _value.toString
+    )
   ) {
     value = value.toString()
   }
@@ -1823,7 +1819,7 @@ coerce.boolean = value => typeOf("boolean", primitive(value))
 coerce.date = value => {
   value = primitive(value)
 
-  if (typeof value === "number" && !isNaN(value) && isFinite(value)) {
+  if (lodash.isNumber(value) && !isNaN(value) && isFinite(value)) {
     return new Date(value)
   }
 }
@@ -1835,7 +1831,13 @@ function typeOf(type, value) {
 }
 
 function primitive(value) {
-  if (value != null && typeof value === "object" && typeof value.valueOf === "function") {
+  var _value2
+
+  if (
+    lodash.isFunction(
+      (_value2 = value) === null || _value2 === void 0 ? void 0 : _value2.valueOf
+    )
+  ) {
     value = value.valueOf()
   }
 
@@ -1849,8 +1851,7 @@ function slice(value, from) {
 types.forEach(type => {
   const typeArg = [type]
 
-  normalize[type] = function () {
-    const args = slice(arguments)
+  normalize[type] = function (...args) {
     return normalize.apply(this, typeArg.concat(args))
   }
 })
@@ -1877,7 +1878,7 @@ function createResolver(config = {}, options = {}) {
     let option = options[key]
 
     if (option != null) {
-      if (typeof option === "function") {
+      if (lodash.isFunction(option)) {
         return
       }
 
@@ -1891,7 +1892,7 @@ function createResolver(config = {}, options = {}) {
 
     const fallback = definition.default
 
-    if (option == null && typeof fallback !== "function") {
+    if (option == null && !lodash.isFunction(fallback)) {
       constants[key] = fallback
       return fallback
     }
@@ -1913,7 +1914,7 @@ function createResolver(config = {}, options = {}) {
     }
 
     if (stack.includes(key)) {
-      throw new Error("Recursive resolution denied.")
+      throw Error("Recursive resolution denied.")
     }
 
     option = options[key]
@@ -1928,7 +1929,7 @@ function createResolver(config = {}, options = {}) {
       if (option == null) {
         option = fallback
 
-        if (typeof option === "function") {
+        if (lodash.isFunction(option)) {
           option = option.apply(resolver, appliedArgs)
         }
       }
@@ -2018,7 +2019,7 @@ class Cloneable extends stream.PassThrough {
 
   clone() {
     if (!this._original) {
-      throw new Error("already started")
+      throw Error("already started")
     }
 
     this._clonesCount++
@@ -2521,7 +2522,7 @@ function readFromFileMap(sm, dir) {
   try {
     return fs.readFileSync(filepath, "utf8")
   } catch (e) {
-    throw new Error(
+    throw Error(
       `An error occurred while trying to read the map file at ${filepath}\n${e}`
     )
   }
@@ -2557,7 +2558,7 @@ class Converter {
 
   addProperty(key, value) {
     if (this.sourcemap.hasOwnProperty(key))
-      throw new Error(
+      throw Error(
         `property "${key}" already exists on the sourcemap, use set property instead`
       )
     return this.setProperty(key, value)
@@ -2918,7 +2919,7 @@ function add(file, callback) {
 }
 
 function write(file, destPath, callback) {
-  if (typeof destPath === "function") {
+  if (lodash.isFunction(destPath)) {
     callback = destPath
     destPath = undefined
   }
@@ -3031,6 +3032,55 @@ class Readable extends stream.PassThrough {
   }
 }
 
+class IconvLiteEncoderStream extends stream.Transform {
+  constructor(conv, options) {
+    super(options)
+    this.conv = conv
+    options = options || {}
+    options.decodeStrings = false
+  }
+
+  _transform(chunk, encoding, done) {
+    if (!lodash.isString(chunk))
+      return done(new Error("Iconv encoding stream needs strings as its input."))
+
+    try {
+      const res = this.conv.write(chunk)
+      if (res && res.length) this.push(res)
+      done()
+    } catch (e) {
+      done(e)
+    }
+  }
+
+  _flush(done) {
+    try {
+      const res = this.conv.end()
+      if (res && res.length) this.push(res)
+      done()
+    } catch (e) {
+      done(e)
+    }
+  }
+
+  collect(cb) {
+    const chunks = []
+    this.on("error", cb)
+    this.on("data", chunk => {
+      chunks.push(chunk)
+    })
+    this.on("end", () => {
+      cb(null, Buffer.concat(chunks))
+    })
+    return this
+  }
+}
+IconvLiteEncoderStream.prototype = Object.create(stream.Transform.prototype, {
+  constructor: {
+    value: IconvLiteEncoderStream,
+  },
+})
+
 var toEncoding = exports.encode
 var fromEncoding = exports.decode
 function getCodec(encoding) {
@@ -3064,23 +3114,8 @@ function getCodec(encoding) {
         return codec
 
       default:
-        throw new Error(`Encoding not recognized: '${encoding}' (searched as: '${enc}')`)
+        throw Error(`Encoding not recognized: '${encoding}' (searched as: '${enc}')`)
     }
-  }
-}
-let stream_module
-
-try {
-  stream_module = require("stream")
-} catch (e) {}
-
-if (stream_module && stream_module.Transform) {
-  exports.enableStreamingAPI(stream_module)
-} else {
-  exports.encodeStream = exports.decodeStream = () => {
-    throw new Error(
-      "iconv-lite Streaming API is not enabled. Use iconv.enableStreamingAPI(require('stream')); to enable it."
-    )
   }
 }
 
@@ -3778,7 +3813,7 @@ function src(glob, opt) {
   const optResolver = createResolver(config, opt)
 
   if (!isValidGlob(glob)) {
-    throw new Error(`Invalid glob argument: ${glob}`)
+    throw Error(`Invalid glob argument: ${glob}`)
   }
 
   const streams = [
@@ -3979,7 +4014,7 @@ const config$1 = {
 
 function prepareWrite(folderResolver, optResolver) {
   if (!folderResolver) {
-    throw new Error("Invalid output folder")
+    throw Error("Invalid output folder")
   }
 
   function normalize(file, _enc, cb) {
@@ -4147,7 +4182,7 @@ function writeStream(file, optResolver, onWritten) {
         return false
       }
 
-      throw new Error(`Eek! stub resolver doesn't have ${key}`)
+      throw Error(`Eek! stub resolver doesn't have ${key}`)
     }
 
     function complete() {
@@ -4198,7 +4233,7 @@ function writeBuffer(file, optResolver, onWritten) {
   }
 }
 
-const isWindows = os.platform() === "win32"
+const isWindows = process.platform === "win32"
 
 function writeSymbolicLink(file, optResolver, onWritten) {
   if (!file.symlink) {
@@ -4343,7 +4378,7 @@ const config$2 = {
 
 function prepareSymlink(folderResolver, optResolver) {
   if (!folderResolver) {
-    throw new Error("Invalid output folder")
+    throw Error("Invalid output folder")
   }
 
   function normalize(file, enc, cb) {
@@ -4376,7 +4411,7 @@ function prepareSymlink(folderResolver, optResolver) {
   return main.obj(normalize)
 }
 
-const isWindows$1 = os.platform() === "win32"
+const isWindows$1 = process.platform === "win32"
 
 function linkStream(optResolver) {
   function linkFile(file, _enc, callback) {
@@ -4442,7 +4477,7 @@ const folderConfig$1 = {
 }
 function symlink$1(outFolder, opt) {
   if (!outFolder) {
-    throw new Error(
+    throw Error(
       "Invalid symlink() folder argument. Please specify a non-empty string or a function."
     )
   }
@@ -4518,56 +4553,11 @@ const REGEX_NON_SPECIAL_CHARS = /^[^@![\].,$*+?^{}()|\\/]+/
 const REGEX_SPECIAL_CHARS = /[-*+?.^${}(|)[\]]/
 const REGEX_SPECIAL_CHARS_BACKREF = /(\\?)((\W)(\3*))/g
 const REGEX_SPECIAL_CHARS_GLOBAL = /([-*+?.^${}(|)[\]])/g
-const REGEX_REMOVE_BACKSLASH = /(?:\[.*?[^\\]\]|\\(?=.))/g
 const REPLACEMENTS = {
   "***": "*",
   "**/**": "**",
   "**/**/**": "**",
 }
-const CHAR_0 = 48
-const CHAR_9 = 57
-const CHAR_UPPERCASE_A = 65
-const CHAR_LOWERCASE_A = 97
-const CHAR_UPPERCASE_Z = 90
-const CHAR_LOWERCASE_Z = 122
-const CHAR_LEFT_PARENTHESES = 40
-const CHAR_RIGHT_PARENTHESES = 41
-const CHAR_ASTERISK = 42
-const CHAR_AMPERSAND = 38
-const CHAR_AT = 64
-const CHAR_BACKWARD_SLASH = 92
-const CHAR_CARRIAGE_RETURN = 13
-const CHAR_CIRCUMFLEX_ACCENT = 94
-const CHAR_COLON = 58
-const CHAR_COMMA = 44
-const CHAR_DOT = 46
-const CHAR_DOUBLE_QUOTE = 34
-const CHAR_EQUAL = 61
-const CHAR_EXCLAMATION_MARK = 33
-const CHAR_FORM_FEED = 12
-const CHAR_FORWARD_SLASH = 47
-const CHAR_GRAVE_ACCENT = 96
-const CHAR_HASH = 35
-const CHAR_HYPHEN_MINUS = 45
-const CHAR_LEFT_ANGLE_BRACKET = 60
-const CHAR_LEFT_CURLY_BRACE = 123
-const CHAR_LEFT_SQUARE_BRACKET = 91
-const CHAR_LINE_FEED = 10
-const CHAR_NO_BREAK_SPACE = 160
-const CHAR_PERCENT = 37
-const CHAR_PLUS = 43
-const CHAR_QUESTION_MARK = 63
-const CHAR_RIGHT_ANGLE_BRACKET = 62
-const CHAR_RIGHT_CURLY_BRACE = 125
-const CHAR_RIGHT_SQUARE_BRACKET = 93
-const CHAR_SEMICOLON = 59
-const CHAR_SINGLE_QUOTE = 39
-const CHAR_SPACE = 32
-const CHAR_TAB = 9
-const CHAR_UNDERSCORE = 95
-const CHAR_VERTICAL_LINE = 124
-const CHAR_ZERO_WIDTH_NOBREAK_SPACE = 65279
-const SEP = path.sep
 function extglobChars(chars) {
   return {
     "!": {
@@ -4601,65 +4591,6 @@ function globChars(win32) {
   return win32 === true ? WINDOWS_CHARS : POSIX_CHARS
 }
 
-var constants = /*#__PURE__*/ Object.freeze({
-  __proto__: null,
-  POSIX_REGEX_SOURCE: POSIX_REGEX_SOURCE,
-  MAX_LENGTH: MAX_LENGTH,
-  REGEX_BACKSLASH: REGEX_BACKSLASH,
-  REGEX_NON_SPECIAL_CHARS: REGEX_NON_SPECIAL_CHARS,
-  REGEX_SPECIAL_CHARS: REGEX_SPECIAL_CHARS,
-  REGEX_SPECIAL_CHARS_BACKREF: REGEX_SPECIAL_CHARS_BACKREF,
-  REGEX_SPECIAL_CHARS_GLOBAL: REGEX_SPECIAL_CHARS_GLOBAL,
-  REGEX_REMOVE_BACKSLASH: REGEX_REMOVE_BACKSLASH,
-  REPLACEMENTS: REPLACEMENTS,
-  CHAR_0: CHAR_0,
-  CHAR_9: CHAR_9,
-  CHAR_UPPERCASE_A: CHAR_UPPERCASE_A,
-  CHAR_LOWERCASE_A: CHAR_LOWERCASE_A,
-  CHAR_UPPERCASE_Z: CHAR_UPPERCASE_Z,
-  CHAR_LOWERCASE_Z: CHAR_LOWERCASE_Z,
-  CHAR_LEFT_PARENTHESES: CHAR_LEFT_PARENTHESES,
-  CHAR_RIGHT_PARENTHESES: CHAR_RIGHT_PARENTHESES,
-  CHAR_ASTERISK: CHAR_ASTERISK,
-  CHAR_AMPERSAND: CHAR_AMPERSAND,
-  CHAR_AT: CHAR_AT,
-  CHAR_BACKWARD_SLASH: CHAR_BACKWARD_SLASH,
-  CHAR_CARRIAGE_RETURN: CHAR_CARRIAGE_RETURN,
-  CHAR_CIRCUMFLEX_ACCENT: CHAR_CIRCUMFLEX_ACCENT,
-  CHAR_COLON: CHAR_COLON,
-  CHAR_COMMA: CHAR_COMMA,
-  CHAR_DOT: CHAR_DOT,
-  CHAR_DOUBLE_QUOTE: CHAR_DOUBLE_QUOTE,
-  CHAR_EQUAL: CHAR_EQUAL,
-  CHAR_EXCLAMATION_MARK: CHAR_EXCLAMATION_MARK,
-  CHAR_FORM_FEED: CHAR_FORM_FEED,
-  CHAR_FORWARD_SLASH: CHAR_FORWARD_SLASH,
-  CHAR_GRAVE_ACCENT: CHAR_GRAVE_ACCENT,
-  CHAR_HASH: CHAR_HASH,
-  CHAR_HYPHEN_MINUS: CHAR_HYPHEN_MINUS,
-  CHAR_LEFT_ANGLE_BRACKET: CHAR_LEFT_ANGLE_BRACKET,
-  CHAR_LEFT_CURLY_BRACE: CHAR_LEFT_CURLY_BRACE,
-  CHAR_LEFT_SQUARE_BRACKET: CHAR_LEFT_SQUARE_BRACKET,
-  CHAR_LINE_FEED: CHAR_LINE_FEED,
-  CHAR_NO_BREAK_SPACE: CHAR_NO_BREAK_SPACE,
-  CHAR_PERCENT: CHAR_PERCENT,
-  CHAR_PLUS: CHAR_PLUS,
-  CHAR_QUESTION_MARK: CHAR_QUESTION_MARK,
-  CHAR_RIGHT_ANGLE_BRACKET: CHAR_RIGHT_ANGLE_BRACKET,
-  CHAR_RIGHT_CURLY_BRACE: CHAR_RIGHT_CURLY_BRACE,
-  CHAR_RIGHT_SQUARE_BRACKET: CHAR_RIGHT_SQUARE_BRACKET,
-  CHAR_SEMICOLON: CHAR_SEMICOLON,
-  CHAR_SINGLE_QUOTE: CHAR_SINGLE_QUOTE,
-  CHAR_SPACE: CHAR_SPACE,
-  CHAR_TAB: CHAR_TAB,
-  CHAR_UNDERSCORE: CHAR_UNDERSCORE,
-  CHAR_VERTICAL_LINE: CHAR_VERTICAL_LINE,
-  CHAR_ZERO_WIDTH_NOBREAK_SPACE: CHAR_ZERO_WIDTH_NOBREAK_SPACE,
-  SEP: SEP,
-  extglobChars: extglobChars,
-  globChars: globChars,
-})
-
 const win32 = process.platform === "win32"
 function hasRegexChars(str) {
   return REGEX_SPECIAL_CHARS.test(str)
@@ -4669,9 +4600,6 @@ function escapeRegex(str) {
 }
 function toPosixSlashes(str) {
   return str.replace(REGEX_BACKSLASH, "/")
-}
-function removeBackslashes(str) {
-  return str.replace(REGEX_REMOVE_BACKSLASH, match => (match === "\\" ? "" : match))
 }
 function supportsLookbehinds() {
   const segs = process.version.slice(1).split(".").map(Number)
@@ -4683,7 +4611,7 @@ function supportsLookbehinds() {
   return false
 }
 function isWindows$2(options) {
-  if (options && typeof options.windows === "boolean") {
+  if (options && lodash.isBoolean(options.windows)) {
     return options.windows
   }
 
@@ -4717,385 +4645,8 @@ function wrapOutput(input, state = {}, options = {}) {
   return output
 }
 
-const isPathSeparator = code =>
-  code === CHAR_FORWARD_SLASH || code === CHAR_BACKWARD_SLASH
-
-const depth = token => {
-  if (token.isPrefix !== true) {
-    token.depth = token.isGlobstar ? Infinity : 1
-  }
-}
-
-const scan = (input, options) => {
-  const opts = options || {}
-  const length = input.length - 1
-  const scanToEnd = opts.parts === true || opts.scanToEnd === true
-  const slashes = []
-  const tokens = []
-  const parts = []
-  let str = input
-  let index = -1
-  let start = 0
-  let lastIndex = 0
-  let isBrace = false
-  let isBracket = false
-  let isGlob = false
-  let isExtglob = false
-  let isGlobstar = false
-  let braceEscaped = false
-  let backslashes = false
-  let negated = false
-  let finished = false
-  let braces = 0
-  let prev
-  let code
-  let token = {
-    value: "",
-    depth: 0,
-    isGlob: false,
-  }
-
-  const eos = () => index >= length
-
-  const peek = () => str.charCodeAt(index + 1)
-
-  const advance = () => {
-    prev = code
-    return str.charCodeAt(++index)
-  }
-
-  while (index < length) {
-    code = advance()
-    let next
-
-    if (code === CHAR_BACKWARD_SLASH) {
-      backslashes = token.backslashes = true
-      code = advance()
-
-      if (code === CHAR_LEFT_CURLY_BRACE) {
-        braceEscaped = true
-      }
-
-      continue
-    }
-
-    if (braceEscaped === true || code === CHAR_LEFT_CURLY_BRACE) {
-      braces++
-
-      while (eos() !== true && (code = advance())) {
-        if (code === CHAR_BACKWARD_SLASH) {
-          backslashes = token.backslashes = true
-          advance()
-          continue
-        }
-
-        if (code === CHAR_LEFT_CURLY_BRACE) {
-          braces++
-          continue
-        }
-
-        if (
-          braceEscaped !== true &&
-          code === CHAR_DOT &&
-          (code = advance()) === CHAR_DOT
-        ) {
-          isBrace = token.isBrace = true
-          isGlob = token.isGlob = true
-          finished = true
-
-          if (scanToEnd === true) {
-            continue
-          }
-
-          break
-        }
-
-        if (braceEscaped !== true && code === CHAR_COMMA) {
-          isBrace = token.isBrace = true
-          isGlob = token.isGlob = true
-          finished = true
-
-          if (scanToEnd === true) {
-            continue
-          }
-
-          break
-        }
-
-        if (code === CHAR_RIGHT_CURLY_BRACE) {
-          braces--
-
-          if (braces === 0) {
-            braceEscaped = false
-            isBrace = token.isBrace = true
-            finished = true
-            break
-          }
-        }
-      }
-
-      if (scanToEnd === true) {
-        continue
-      }
-
-      break
-    }
-
-    if (code === CHAR_FORWARD_SLASH) {
-      slashes.push(index)
-      tokens.push(token)
-      token = {
-        value: "",
-        depth: 0,
-        isGlob: false,
-      }
-      if (finished === true) continue
-
-      if (prev === CHAR_DOT && index === start + 1) {
-        start += 2
-        continue
-      }
-
-      lastIndex = index + 1
-      continue
-    }
-
-    if (opts.noext !== true) {
-      const isExtglobChar =
-        code === CHAR_PLUS ||
-        code === CHAR_AT ||
-        code === CHAR_ASTERISK ||
-        code === CHAR_QUESTION_MARK ||
-        code === CHAR_EXCLAMATION_MARK
-
-      if (isExtglobChar === true && peek() === CHAR_LEFT_PARENTHESES) {
-        isGlob = token.isGlob = true
-        isExtglob = token.isExtglob = true
-        finished = true
-
-        if (scanToEnd === true) {
-          while (eos() !== true && (code = advance())) {
-            if (code === CHAR_BACKWARD_SLASH) {
-              backslashes = token.backslashes = true
-              code = advance()
-              continue
-            }
-
-            if (code === CHAR_RIGHT_PARENTHESES) {
-              isGlob = token.isGlob = true
-              finished = true
-              break
-            }
-          }
-
-          continue
-        }
-
-        break
-      }
-    }
-
-    if (code === CHAR_ASTERISK) {
-      if (prev === CHAR_ASTERISK) isGlobstar = token.isGlobstar = true
-      isGlob = token.isGlob = true
-      finished = true
-
-      if (scanToEnd === true) {
-        continue
-      }
-
-      break
-    }
-
-    if (code === CHAR_QUESTION_MARK) {
-      isGlob = token.isGlob = true
-      finished = true
-
-      if (scanToEnd === true) {
-        continue
-      }
-
-      break
-    }
-
-    if (code === CHAR_LEFT_SQUARE_BRACKET) {
-      while (eos() !== true && (next = advance())) {
-        if (next === CHAR_BACKWARD_SLASH) {
-          backslashes = token.backslashes = true
-          advance()
-          continue
-        }
-
-        if (next === CHAR_RIGHT_SQUARE_BRACKET) {
-          isBracket = token.isBracket = true
-          isGlob = token.isGlob = true
-          finished = true
-
-          if (scanToEnd === true) {
-            continue
-          }
-
-          break
-        }
-      }
-    }
-
-    if (opts.nonegate !== true && code === CHAR_EXCLAMATION_MARK && index === start) {
-      negated = token.negated = true
-      start++
-      continue
-    }
-
-    if (opts.noparen !== true && code === CHAR_LEFT_PARENTHESES) {
-      isGlob = token.isGlob = true
-
-      if (scanToEnd === true) {
-        while (eos() !== true && (code = advance())) {
-          if (code === CHAR_LEFT_PARENTHESES) {
-            backslashes = token.backslashes = true
-            code = advance()
-            continue
-          }
-
-          if (code === CHAR_RIGHT_PARENTHESES) {
-            finished = true
-            break
-          }
-        }
-
-        continue
-      }
-
-      break
-    }
-
-    if (isGlob === true) {
-      finished = true
-
-      if (scanToEnd === true) {
-        continue
-      }
-
-      break
-    }
-  }
-
-  if (opts.noext === true) {
-    isExtglob = false
-    isGlob = false
-  }
-
-  let base = str
-  let prefix = ""
-  let glob = ""
-
-  if (start > 0) {
-    prefix = str.slice(0, start)
-    str = str.slice(start)
-    lastIndex -= start
-  }
-
-  if (base && isGlob === true && lastIndex > 0) {
-    base = str.slice(0, lastIndex)
-    glob = str.slice(lastIndex)
-  } else if (isGlob === true) {
-    base = ""
-    glob = str
-  } else {
-    base = str
-  }
-
-  if (base && base !== "" && base !== "/" && base !== str) {
-    if (isPathSeparator(base.charCodeAt(base.length - 1))) {
-      base = base.slice(0, -1)
-    }
-  }
-
-  if (opts.unescape === true) {
-    if (glob) glob = removeBackslashes(glob)
-
-    if (base && backslashes === true) {
-      base = removeBackslashes(base)
-    }
-  }
-
-  const state = {
-    prefix,
-    input,
-    start,
-    base,
-    glob,
-    isBrace,
-    isBracket,
-    isGlob,
-    isExtglob,
-    isGlobstar,
-    negated,
-  }
-
-  if (opts.tokens === true) {
-    state.maxDepth = 0
-
-    if (!isPathSeparator(code)) {
-      tokens.push(token)
-    }
-
-    state.tokens = tokens
-  }
-
-  if (opts.parts === true || opts.tokens === true) {
-    let prevIndex
-    slashes.forEach((i, idx) => {
-      i = slashes[idx]
-      const value = input.slice(n, i)
-
-      if (opts.tokens) {
-        if (idx === 0 && start !== 0) {
-          tokens[idx].isPrefix = true
-          tokens[idx].value = prefix
-        } else {
-          tokens[idx].value = value
-        }
-
-        depth(tokens[idx])
-        state.maxDepth += tokens[idx].depth
-      }
-
-      if (idx !== 0 || value !== "") {
-        parts.push(value)
-      }
-
-      prevIndex = i
-    })
-
-    if (prevIndex && prevIndex + 1 < input.length) {
-      const value = input.slice(prevIndex + 1)
-      parts.push(value)
-
-      if (opts.tokens) {
-        tokens[tokens.length - 1].value = value
-        depth(tokens[tokens.length - 1])
-        state.maxDepth += tokens[tokens.length - 1].depth
-      }
-    }
-
-    state.slashes = slashes
-    state.parts = parts
-  }
-
-  return state
-}
-
-const {
-  MAX_LENGTH: MAX_LENGTH$1,
-  POSIX_REGEX_SOURCE: POSIX_REGEX_SOURCE$1,
-  REGEX_NON_SPECIAL_CHARS: REGEX_NON_SPECIAL_CHARS$1,
-  REGEX_SPECIAL_CHARS_BACKREF: REGEX_SPECIAL_CHARS_BACKREF$1,
-  REPLACEMENTS: REPLACEMENTS$1,
-} = constants
-
 const expandRange = (args, options) => {
-  if (typeof options.expandRange === "function") {
+  if (lodash.isFunction(options.expandRange)) {
     return options.expandRange(...args, options)
   }
 
@@ -5115,20 +4666,19 @@ const syntaxError = (type, char) =>
   `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`
 
 const parse$1 = (input, options) => {
-  if (typeof input !== "string") {
-    throw new TypeError("Expected a string")
+  if (!lodash.isString(input)) {
+    throw TypeError("Expected a string")
   }
 
-  input = REPLACEMENTS$1[input] || input
+  input = REPLACEMENTS[input] || input
   const opts = { ...options }
-  const max =
-    typeof opts.maxLength === "number"
-      ? Math.min(MAX_LENGTH$1, opts.maxLength)
-      : MAX_LENGTH$1
+  const max = lodash.isNumber(opts.maxLength)
+    ? Math.min(MAX_LENGTH, opts.maxLength)
+    : MAX_LENGTH
   let len = input.length
 
   if (len > max) {
-    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
+    throw SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
   }
 
   const bos = {
@@ -5167,7 +4717,7 @@ const parse$1 = (input, options) => {
     star = `(${star})`
   }
 
-  if (typeof opts.noext === "boolean") {
+  if (lodash.isBoolean(opts.noext)) {
     opts.noextglob = opts.noext
   }
 
@@ -5327,7 +4877,7 @@ const parse$1 = (input, options) => {
   if (opts.fastpaths !== false && !/(^[*!]|[/()[\]{}"])/.test(input)) {
     let backslashes = false
     let output = input.replace(
-      REGEX_SPECIAL_CHARS_BACKREF$1,
+      REGEX_SPECIAL_CHARS_BACKREF,
       (m, esc, { length }, first, rest, index) => {
         if (first === "\\") {
           backslashes = true
@@ -5449,7 +4999,7 @@ const parse$1 = (input, options) => {
             const idx = prev.value.lastIndexOf("[")
             const pre = prev.value.slice(0, idx)
             const rest = prev.value.slice(idx + 2)
-            const posix = POSIX_REGEX_SOURCE$1[rest]
+            const posix = POSIX_REGEX_SOURCE[rest]
 
             if (posix) {
               prev.value = pre + posix
@@ -5518,7 +5068,7 @@ const parse$1 = (input, options) => {
 
     if (value === ")") {
       if (state.parens === 0 && opts.strictBrackets === true) {
-        throw new SyntaxError(syntaxError("opening", "("))
+        throw SyntaxError(syntaxError("opening", "("))
       }
 
       const extglob = extglobs[extglobs.length - 1]
@@ -5540,7 +5090,7 @@ const parse$1 = (input, options) => {
     if (value === "[") {
       if (opts.nobracket === true || !remaining().includes("]")) {
         if (opts.nobracket !== true && opts.strictBrackets === true) {
-          throw new SyntaxError(syntaxError("closing", "]"))
+          throw SyntaxError(syntaxError("closing", "]"))
         }
 
         value = `\\${value}`
@@ -5570,7 +5120,7 @@ const parse$1 = (input, options) => {
 
       if (state.brackets === 0) {
         if (opts.strictBrackets === true) {
-          throw new SyntaxError(syntaxError("opening", "["))
+          throw SyntaxError(syntaxError("opening", "["))
         }
 
         push({
@@ -5773,7 +5323,7 @@ const parse$1 = (input, options) => {
         let output = value
 
         if (next === "<" && !supportsLookbehinds()) {
-          throw new Error("Node.js v10 or higher is required for regex lookbehinds")
+          throw Error("Node.js v10 or higher is required for regex lookbehinds")
         }
 
         if (
@@ -5879,7 +5429,7 @@ const parse$1 = (input, options) => {
         value = `\\${value}`
       }
 
-      const match = REGEX_NON_SPECIAL_CHARS$1.exec(remaining())
+      const match = REGEX_NON_SPECIAL_CHARS.exec(remaining())
 
       if (match) {
         value += match[0]
@@ -6070,19 +5620,19 @@ const parse$1 = (input, options) => {
   }
 
   while (state.brackets > 0) {
-    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError("closing", "]"))
+    if (opts.strictBrackets === true) throw SyntaxError(syntaxError("closing", "]"))
     state.output = escapeLast(state.output, "[")
     decrement("brackets")
   }
 
   while (state.parens > 0) {
-    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError("closing", ")"))
+    if (opts.strictBrackets === true) throw SyntaxError(syntaxError("closing", ")"))
     state.output = escapeLast(state.output, "(")
     decrement("parens")
   }
 
   while (state.braces > 0) {
-    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError("closing", "}"))
+    if (opts.strictBrackets === true) throw SyntaxError(syntaxError("closing", "}"))
     state.output = escapeLast(state.output, "{")
     decrement("braces")
   }
@@ -6112,17 +5662,16 @@ const parse$1 = (input, options) => {
 
 parse$1.fastpaths = (input, options) => {
   const opts = { ...options }
-  const max =
-    typeof opts.maxLength === "number"
-      ? Math.min(MAX_LENGTH$1, opts.maxLength)
-      : MAX_LENGTH$1
+  const max = lodash.isNumber(opts.maxLength)
+    ? Math.min(MAX_LENGTH, opts.maxLength)
+    : MAX_LENGTH
   const len = input.length
 
   if (len > max) {
-    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
+    throw SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
   }
 
-  input = REPLACEMENTS$1[input] || input
+  input = REPLACEMENTS[input] || input
   const win32 = isWindows$2(options)
   const {
     DOT_LITERAL,
@@ -6225,19 +5774,17 @@ const picomatch = (glob, options, returnState = false) => {
 
   const isState = isObject(glob) && glob.tokens && glob.input
 
-  if (glob === "" || (typeof glob !== "string" && !isState)) {
-    throw new TypeError("Expected pattern to be a non-empty string")
+  if (glob === "" || (!lodash.isString(glob) && !isState)) {
+    throw TypeError("Expected pattern to be a non-empty string")
   }
 
   const opts = options || {}
   const posix = isWindows$2(options)
-  const regex = isState
-    ? picomatch.compileRe(glob, options)
-    : picomatch.makeRe(glob, options, false, true)
+  const regex = isState ? compileRe(glob, options) : makeRe(glob, options, false, true)
   const state = regex.state
   delete regex.state
 
-  let isIgnored = () => false
+  let isIgnored = (...args) => false
 
   if (opts.ignore) {
     const ignoreOpts = { ...options, ignore: null, onMatch: null, onResult: null }
@@ -6245,7 +5792,7 @@ const picomatch = (glob, options, returnState = false) => {
   }
 
   const matcher = (input, returnObject = false) => {
-    const { isMatch, match, output } = picomatch.test(input, regex, options, {
+    const { isMatch, match, output } = test(input, regex, options, {
       glob,
       posix,
     })
@@ -6260,7 +5807,7 @@ const picomatch = (glob, options, returnState = false) => {
       isMatch,
     }
 
-    if (typeof opts.onResult === "function") {
+    if (lodash.isFunction(opts.onResult)) {
       opts.onResult(result)
     }
 
@@ -6270,7 +5817,7 @@ const picomatch = (glob, options, returnState = false) => {
     }
 
     if (isIgnored(input)) {
-      if (typeof opts.onIgnore === "function") {
+      if (lodash.isFunction(opts.onIgnore)) {
         opts.onIgnore(result)
       }
 
@@ -6278,7 +5825,7 @@ const picomatch = (glob, options, returnState = false) => {
       return returnObject ? result : false
     }
 
-    if (typeof opts.onMatch === "function") {
+    if (lodash.isFunction(opts.onMatch)) {
       opts.onMatch(result)
     }
 
@@ -6292,9 +5839,9 @@ const picomatch = (glob, options, returnState = false) => {
   return matcher
 }
 
-picomatch.test = (input, regex, options, { glob, posix } = {}) => {
-  if (typeof input !== "string") {
-    throw new TypeError("Expected input to be a string")
+function test(input, regex, options, { glob, posix } = {}) {
+  if (!lodash.isString(input)) {
+    throw TypeError("Expected input to be a string")
   }
 
   if (input === "") {
@@ -6316,7 +5863,7 @@ picomatch.test = (input, regex, options, { glob, posix } = {}) => {
 
   if (match === false || opts.capture === true) {
     if (opts.matchBase === true || opts.basename === true) {
-      match = picomatch.matchBase(input, regex, options, posix)
+      match = matchBase(input, regex, options, posix)
     } else {
       match = regex.exec(output)
     }
@@ -6329,21 +5876,12 @@ picomatch.test = (input, regex, options, { glob, posix } = {}) => {
   }
 }
 
-picomatch.matchBase = (input, glob, options, posix = isWindows$2(options)) => {
-  const regex = glob instanceof RegExp ? glob : picomatch.makeRe(glob, options)
+function matchBase(input, glob, options, posix = isWindows$2(options)) {
+  const regex = glob instanceof RegExp ? glob : makeRe(glob, options)
   return regex.test(path.basename(input))
 }
 
-picomatch.isMatch = (str, patterns, options) => picomatch(patterns, options)(str)
-
-picomatch.parse = (pattern, options) => {
-  if (Array.isArray(pattern)) return pattern.map(p => picomatch.parse(p, options))
-  return parse$1(pattern, { ...options, fastpaths: false })
-}
-
-picomatch.scan = (input, options) => scan(input, options)
-
-picomatch.compileRe = (parsed, options, returnOutput = false, returnState = false) => {
+function compileRe(parsed, options, returnOutput = false, returnState = false) {
   if (returnOutput === true) {
     return parsed.output
   }
@@ -6357,7 +5895,7 @@ picomatch.compileRe = (parsed, options, returnOutput = false, returnState = fals
     source = `^(?!${source}).*$`
   }
 
-  const regex = picomatch.toRegex(source, options)
+  const regex = toRegex(source, options)
 
   if (returnState === true) {
     regex.state = parsed
@@ -6366,9 +5904,9 @@ picomatch.compileRe = (parsed, options, returnOutput = false, returnState = fals
   return regex
 }
 
-picomatch.makeRe = (input, options, returnOutput = false, returnState = false) => {
-  if (!input || typeof input !== "string") {
-    throw new TypeError("Expected a non-empty string")
+function makeRe(input, options, returnOutput = false, returnState = false) {
+  if (!input || !lodash.isString(input)) {
+    throw TypeError("Expected a non-empty string")
   }
 
   const opts = options || {}
@@ -6395,10 +5933,10 @@ picomatch.makeRe = (input, options, returnOutput = false, returnState = false) =
     parsed.output = output
   }
 
-  return picomatch.compileRe(parsed, options, returnOutput, returnState)
+  return compileRe(parsed, options, returnOutput, returnState)
 }
 
-picomatch.toRegex = (source, options) => {
+function toRegex(source, options) {
   try {
     const opts = options || {}
     return new RegExp(source, opts.flags || (opts.nocase ? "i" : ""))
@@ -6408,8 +5946,6 @@ picomatch.toRegex = (source, options) => {
   }
 }
 
-picomatch.constants = constants
-
 const BANG = "!"
 const DEFAULT_OPTIONS = {
   returnIndex: false,
@@ -6418,11 +5954,11 @@ const DEFAULT_OPTIONS = {
 const arrify = item => (Array.isArray(item) ? item : [item])
 
 const createPattern = (matcher, options) => {
-  if (typeof matcher === "function") {
+  if (lodash.isFunction(matcher)) {
     return matcher
   }
 
-  if (typeof matcher === "string") {
+  if (lodash.isString(matcher)) {
     const glob = picomatch(matcher, options)
     return string => matcher === string || glob(string)
   }
@@ -6439,8 +5975,8 @@ const matchPatterns = (patterns, negPatterns, args, returnIndex) => {
 
   const _path = isList ? args[0] : args
 
-  if (!isList && typeof _path !== "string") {
-    throw new TypeError(
+  if (!isList && !lodash.isString(_path)) {
+    throw TypeError(
       `anymatch: second argument must be a string: got ${Object.prototype.toString.call(
         _path
       )}`
@@ -6470,34 +6006,31 @@ const matchPatterns = (patterns, negPatterns, args, returnIndex) => {
 
 const anymatch = (matchers, testString, options = DEFAULT_OPTIONS) => {
   if (matchers == null) {
-    throw new TypeError("anymatch: specify first argument")
+    throw TypeError("anymatch: specify first argument")
   }
 
-  const opts =
-    typeof options === "boolean"
-      ? {
-          returnIndex: options,
-        }
-      : options
+  const opts = lodash.isBoolean(options)
+    ? {
+        returnIndex: options,
+      }
+    : options
   const returnIndex = opts.returnIndex || false
   const mtchers = arrify(matchers)
   const negatedGlobs = mtchers
-    .filter(item => typeof item === "string" && item.charAt(0) === BANG)
+    .filter(item => lodash.isString(item) && item.charAt(0) === BANG)
     .map(item => item.slice(1))
     .map(item => picomatch(item, opts))
   const patterns = mtchers.map(matcher => createPattern(matcher, opts))
 
   if (testString == null) {
     return (testString, ri = false) => {
-      const returnIndex = typeof ri === "boolean" ? ri : false
+      const returnIndex = lodash.isBoolean(ri) ? ri : false
       return matchPatterns(patterns, negatedGlobs, testString, returnIndex)
     }
   }
 
   return matchPatterns(patterns, negatedGlobs, testString, returnIndex)
 }
-
-anymatch.default = anymatch
 
 const defaultOpts = {
   delay: 200,

@@ -20,7 +20,7 @@ export class Cloneable extends PassThrough {
 
   clone() {
     if (!this._original) {
-      throw new Error("already started")
+      throw Error("already started")
     }
 
     this._clonesCount++

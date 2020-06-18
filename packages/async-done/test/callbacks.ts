@@ -47,7 +47,7 @@ describe("callbacks", () => {
 
     d.run(() => {
       asyncDone(success, () => {
-        throw new Error("Thrown Error")
+        throw Error("Thrown Error")
       })
     })
   })

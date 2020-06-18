@@ -1,24 +1,26 @@
-import * as constants from "./constants"
 import * as utils from "./utils"
 
 /**
  * Constants
  */
 
-const {
+import {
   MAX_LENGTH,
   POSIX_REGEX_SOURCE,
   REGEX_NON_SPECIAL_CHARS,
   REGEX_SPECIAL_CHARS_BACKREF,
   REPLACEMENTS,
-} = constants
+  globChars,
+  extglobChars,
+} from "./constants"
+import { isFunction, isString, isNumber, isBoolean } from "lodash"
 
 /**
  * Helpers
  */
 
 const expandRange = (args, options) => {
-  if (typeof options.expandRange === "function") {
+  if (isFunction(options.expandRange)) {
     return options.expandRange(...args, options)
   }
 
@@ -50,19 +52,18 @@ const syntaxError = (type, char) =>
  */
 
 const parse = (input, options) => {
-  if (typeof input !== "string") {
-    throw new TypeError("Expected a string")
+  if (!isString(input)) {
+    throw TypeError("Expected a string")
   }
 
   input = REPLACEMENTS[input] || input
 
   const opts = { ...options }
-  const max =
-    typeof opts.maxLength === "number" ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH
+  const max = isNumber(opts.maxLength) ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH
 
   let len = input.length
   if (len > max) {
-    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
+    throw SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
   }
 
   const bos = { type: "bos", value: "", output: opts.prepend || "" }
@@ -72,8 +73,8 @@ const parse = (input, options) => {
   const win32 = utils.isWindows(options)
 
   // create constants based on platform, for windows or posix
-  const PLATFORM_CHARS = constants.globChars(win32)
-  const EXTGLOB_CHARS = constants.extglobChars(PLATFORM_CHARS)
+  const PLATFORM_CHARS = globChars(win32)
+  const EXTGLOB_CHARS = extglobChars(PLATFORM_CHARS)
 
   const {
     DOT_LITERAL,
@@ -102,7 +103,7 @@ const parse = (input, options) => {
   }
 
   // minimatch options support
-  if (typeof opts.noext === "boolean") {
+  if (isBoolean(opts.noext)) {
     opts.noextglob = opts.noext
   }
 
@@ -455,7 +456,7 @@ const parse = (input, options) => {
 
     if (value === ")") {
       if (state.parens === 0 && opts.strictBrackets === true) {
-        throw new SyntaxError(syntaxError("opening", "("))
+        throw SyntaxError(syntaxError("opening", "("))
       }
 
       const extglob = extglobs[extglobs.length - 1]
@@ -476,7 +477,7 @@ const parse = (input, options) => {
     if (value === "[") {
       if (opts.nobracket === true || !remaining().includes("]")) {
         if (opts.nobracket !== true && opts.strictBrackets === true) {
-          throw new SyntaxError(syntaxError("closing", "]"))
+          throw SyntaxError(syntaxError("closing", "]"))
         }
 
         value = `\\${value}`
@@ -499,7 +500,7 @@ const parse = (input, options) => {
 
       if (state.brackets === 0) {
         if (opts.strictBrackets === true) {
-          throw new SyntaxError(syntaxError("opening", "["))
+          throw SyntaxError(syntaxError("opening", "["))
         }
 
         push({ type: "text", value, output: `\\${value}` })
@@ -699,7 +700,7 @@ const parse = (input, options) => {
         let output = value
 
         if (next === "<" && !utils.supportsLookbehinds()) {
-          throw new Error("Node.js v10 or higher is required for regex lookbehinds")
+          throw Error("Node.js v10 or higher is required for regex lookbehinds")
         }
 
         if (
@@ -968,19 +969,19 @@ const parse = (input, options) => {
   }
 
   while (state.brackets > 0) {
-    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError("closing", "]"))
+    if (opts.strictBrackets === true) throw SyntaxError(syntaxError("closing", "]"))
     state.output = utils.escapeLast(state.output, "[")
     decrement("brackets")
   }
 
   while (state.parens > 0) {
-    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError("closing", ")"))
+    if (opts.strictBrackets === true) throw SyntaxError(syntaxError("closing", ")"))
     state.output = utils.escapeLast(state.output, "(")
     decrement("parens")
   }
 
   while (state.braces > 0) {
-    if (opts.strictBrackets === true) throw new SyntaxError(syntaxError("closing", "}"))
+    if (opts.strictBrackets === true) throw SyntaxError(syntaxError("closing", "}"))
     state.output = utils.escapeLast(state.output, "{")
     decrement("braces")
   }
@@ -1013,11 +1014,10 @@ const parse = (input, options) => {
 
 parse.fastpaths = (input, options) => {
   const opts = { ...options }
-  const max =
-    typeof opts.maxLength === "number" ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH
+  const max = isNumber(opts.maxLength) ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH
   const len = input.length
   if (len > max) {
-    throw new SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
+    throw SyntaxError(`Input length: ${len}, exceeds maximum allowed length: ${max}`)
   }
 
   input = REPLACEMENTS[input] || input
@@ -1034,7 +1034,7 @@ parse.fastpaths = (input, options) => {
     NO_DOTS_SLASH,
     STAR,
     START_ANCHOR,
-  } = constants.globChars(win32)
+  } = globChars(win32)
 
   const nodot = opts.dot ? NO_DOTS : NO_DOT
   const slashDot = opts.dot ? NO_DOTS_SLASH : NO_DOT

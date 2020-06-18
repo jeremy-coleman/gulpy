@@ -11,7 +11,7 @@ export { pipe }
 // export { default as pipeline } from "pumpify"
 // export { default as duplex } from "duplexify"
 // export { default as through } from "through2"
-// export { default as finished } from "end-of-stream"
+// export { default as finished } from "@local/end-of-stream"
 // export { default as to } from "flush-write-stream"
 // export { default as parallel } from "parallel-transform"
 
@@ -22,6 +22,6 @@ export { pipe }
 // import pipeline from "pumpify"
 // import duplex from "duplexify"
 // import through from "through2"
-// import finished from "end-of-stream"
+// import finished from "@local/end-of-stream"
 // import to from "flush-write-stream"
 // import parallel from "parallel-transform"

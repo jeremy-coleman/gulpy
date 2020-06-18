@@ -26,7 +26,7 @@ function readFromFileMap(sm, dir) {
   try {
     return fs.readFileSync(filepath, "utf8")
   } catch (e) {
-    throw new Error(
+    throw Error(
       `An error occurred while trying to read the map file at ${filepath}\n${e}`
     )
   }
@@ -64,7 +64,7 @@ class Converter {
 
   addProperty(key, value) {
     if (this.sourcemap.hasOwnProperty(key))
-      throw new Error(
+      throw Error(
         `property "${key}" already exists on the sourcemap, use set property instead`
       )
     return this.setProperty(key, value)

@@ -51,7 +51,7 @@ describe("replace-ext", () => {
   })
 
   it("Should preserve the first dot of relative dir name.", () => {
-    if (os.platform() === "win32") {
+    if (process.platform === "win32") {
       expect(replaceExt("a/b/c.js", ".ts")).to.equal("a\\b\\c.ts")
       expect(replaceExt("./a/b/c.js", ".ts")).to.equal(".\\a\\b\\c.ts")
       expect(replaceExt("../a/b/c.js", ".ts")).to.equal("..\\a\\b\\c.ts")

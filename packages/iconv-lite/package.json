@@ -16,6 +16,9 @@
     "coverage": "c8 _mocha --grep .",
     "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
+  "devDependencies": {
+    "iconv": "^3.0.0"
+  },
   "browser": {
     "stream": false
   }

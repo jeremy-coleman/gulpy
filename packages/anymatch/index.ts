@@ -1,5 +1,6 @@
 import { picomatch } from "@local/picomatch"
 import { normalize } from "path"
+import { isFunction, isString, isBoolean } from "lodash"
 
 /**
  * @typedef {(testString: string) => boolean} AnymatchFn
@@ -16,10 +17,10 @@ const arrify = item => (Array.isArray(item) ? item : [item])
  * @returns {AnymatchFn}
  */
 const createPattern = (matcher, options) => {
-  if (typeof matcher === "function") {
+  if (isFunction(matcher)) {
     return matcher
   }
-  if (typeof matcher === "string") {
+  if (isString(matcher)) {
     const glob = picomatch(matcher, options)
     return string => matcher === string || glob(string)
   }
@@ -39,8 +40,8 @@ const createPattern = (matcher, options) => {
 const matchPatterns = (patterns, negPatterns, args, returnIndex) => {
   const isList = Array.isArray(args)
   const _path = isList ? args[0] : args
-  if (!isList && typeof _path !== "string") {
-    throw new TypeError(
+  if (!isList && !isString(_path)) {
+    throw TypeError(
       `anymatch: second argument must be a string: got ${Object.prototype.toString.call(
         _path
       )}`
@@ -73,22 +74,22 @@ const matchPatterns = (patterns, negPatterns, args, returnIndex) => {
  */
 const anymatch = (matchers, testString, options = DEFAULT_OPTIONS) => {
   if (matchers == null) {
-    throw new TypeError("anymatch: specify first argument")
+    throw TypeError("anymatch: specify first argument")
   }
-  const opts = typeof options === "boolean" ? { returnIndex: options } : options
+  const opts = isBoolean(options) ? { returnIndex: options } : options
   const returnIndex = opts.returnIndex || false
 
   // Early cache for matchers.
   const mtchers = arrify(matchers)
   const negatedGlobs = mtchers
-    .filter(item => typeof item === "string" && item.charAt(0) === BANG)
+    .filter(item => isString(item) && item.charAt(0) === BANG)
     .map(item => item.slice(1))
     .map(item => picomatch(item, opts))
   const patterns = mtchers.map(matcher => createPattern(matcher, opts))
 
   if (testString == null) {
     return (testString, ri = false) => {
-      const returnIndex = typeof ri === "boolean" ? ri : false
+      const returnIndex = isBoolean(ri) ? ri : false
       return matchPatterns(patterns, negatedGlobs, testString, returnIndex)
     }
   }
@@ -96,5 +97,4 @@ const anymatch = (matchers, testString, options = DEFAULT_OPTIONS) => {
   return matchPatterns(patterns, negatedGlobs, testString, returnIndex)
 }
 
-anymatch.default = anymatch
 export default anymatch

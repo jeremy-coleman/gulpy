@@ -1,4 +1,6 @@
 import * as bomHandling from "./lib/bom-handling"
+import { IconvLiteDecoderStream, IconvLiteEncoderStream } from "./lib/streams"
+import { isString } from "lodash"
 
 // All codecs and aliases are kept here, keyed by encoding name/alias.
 // They are lazy loaded in `iconv.getCodec` from `encodings/index.js`.
@@ -21,13 +23,15 @@ export function encode(str, encoding, options) {
   return trail && trail.length > 0 ? Buffer.concat([res, trail]) : res
 }
 
+let skipDecodeWarning = false
+
 export function decode(buf, encoding, options) {
-  if (typeof buf === "string") {
-    if (!exports.skipDecodeWarning) {
+  if (isString(buf)) {
+    if (!skipDecodeWarning) {
       console.error(
         "Iconv-lite warning: decode()-ing strings is deprecated. Refer to https://github.com/ashtuchkin/iconv-lite/wiki/Use-Buffers-when-decoding"
       )
-      exports.skipDecodeWarning = true
+      skipDecodeWarning = true
     }
 
     buf = Buffer.from(`${buf || ""}`, "binary") // Ensure buffer.
@@ -96,7 +100,7 @@ export function getCodec(encoding) {
         return codec
 
       default:
-        throw new Error(`Encoding not recognized: '${encoding}' (searched as: '${enc}')`)
+        throw Error(`Encoding not recognized: '${encoding}' (searched as: '${enc}')`)
     }
   }
 }
@@ -128,54 +132,28 @@ export function getDecoder(encoding, options) {
   return decoder
 }
 
+export { IconvLiteEncoderStream, IconvLiteDecoderStream } from "./lib/streams"
+
+// Streaming API.
+export function encodeStream(encoding, options) {
+  return new IconvLiteEncoderStream(getEncoder(encoding, options), options)
+}
+
+export function decodeStream(encoding, options) {
+  return new IconvLiteDecoderStream(getDecoder(encoding, options), options)
+}
+
+let supportsStreams = false
+
 // Streaming API
 // NOTE: Streaming API naturally depends on 'stream' module from Node.js. Unfortunately in browser environments this module can add
 // up to 100Kb to the output bundle. To avoid unnecessary code bloat, we don't enable Streaming API in browser by default.
 // If you would like to enable it explicitly, please add the following code to your app:
 // > iconv.enableStreamingAPI(require('stream'));
-export function enableStreamingAPI(stream_module) {
-  if (exports.supportsStreams) return
+export function enableStreamingAPI() {
+  if (supportsStreams) return
 
-  // Dependency-inject stream module to create IconvLite stream classes.
-  const streams = require("./streams")(stream_module)
-
-  // Not public API yet, but expose the stream classes.
-  exports.IconvLiteEncoderStream = streams.IconvLiteEncoderStream
-  exports.IconvLiteDecoderStream = streams.IconvLiteDecoderStream
-
-  // Streaming API.
-  exports.encodeStream = function encodeStream(encoding, options) {
-    return new exports.IconvLiteEncoderStream(
-      exports.getEncoder(encoding, options),
-      options
-    )
-  }
-
-  exports.decodeStream = function decodeStream(encoding, options) {
-    return new exports.IconvLiteDecoderStream(
-      exports.getDecoder(encoding, options),
-      options
-    )
-  }
-
-  exports.supportsStreams = true
-}
-
-// Enable Streaming API automatically if 'stream' module is available and non-empty (the majority of environments).
-let stream_module
-try {
-  stream_module = require("stream")
-} catch (e) {}
-
-if (stream_module && stream_module.Transform) {
-  exports.enableStreamingAPI(stream_module)
-} else {
-  // In rare cases where 'stream' module is not available by default, throw a helpful exception.
-  exports.encodeStream = exports.decodeStream = () => {
-    throw new Error(
-      "iconv-lite Streaming API is not enabled. Use iconv.enableStreamingAPI(require('stream')); to enable it."
-    )
-  }
+  supportsStreams = true
 }
 
 if ("Ā" != "\u0100") {

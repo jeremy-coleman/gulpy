@@ -45,7 +45,7 @@ declare class FirstChunkStream extends DuplexStream {
 		const data = await getStream(stream);
 
 		if (data.length < 7) {
-			throw new Error('Couldn\'t get the minimum required first chunk length');
+			throw Error('Couldn\'t get the minimum required first chunk length');
 		}
 
 		console.log(data);

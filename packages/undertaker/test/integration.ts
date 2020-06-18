@@ -11,7 +11,7 @@ import del from "del"
 import through from "through2"
 import { Undertaker } from "../mod"
 
-const isWindows = os.platform() === "win32"
+const isWindows = process.platform === "win32"
 
 function cleanup() {
   return del([

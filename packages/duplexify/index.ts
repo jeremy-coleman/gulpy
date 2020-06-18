@@ -1,5 +1,5 @@
 import * as stream from "stream"
-import eos from "end-of-stream"
+import eos from "@local/end-of-stream"
 import { shift } from "stream-shift"
 import { noop, isFunction } from "lodash"
 

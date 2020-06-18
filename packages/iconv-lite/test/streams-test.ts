@@ -4,12 +4,13 @@ import assert from "assert"
 import semver from "semver"
 import exports from "../"
 import { Readable } from "stream"
+import { isString, isFunction } from "lodash"
 
 // Create a source stream that feeds given array of chunks.
 function feeder(chunks) {
   if (!Array.isArray(chunks)) chunks = [chunks]
   const opts = {}
-  if (chunks.every(chunk => typeof chunk == "string")) opts.encoding = "utf8"
+  if (chunks.every(isString)) opts.encoding = "utf8"
 
   const stream = new Readable(opts)
   function writeChunk() {
@@ -63,10 +64,11 @@ function checkStreamOutput(options) {
       try {
         if (options.checkError) {
           assert(err, "Expected error, but got success")
-          if (Object.prototype.toString.call(options.checkError) == "[object RegExp]")
+          if (Object.prototype.toString.call(options.checkError) == "[object RegExp]") {
             assert(options.checkError.test(err.message))
-          else if (typeof options.checkError == "function") options.checkError(err)
-          else
+          } else if (isFunction(options.checkError)) {
+            options.checkError(err)
+          } else
             assert.fail(
               null,
               null,

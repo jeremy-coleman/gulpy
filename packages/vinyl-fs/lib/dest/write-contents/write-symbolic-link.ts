@@ -2,7 +2,7 @@ import * as os from "os"
 import * as path from "path"
 import * as fo from "../../file-operations"
 
-const isWindows = os.platform() === "win32"
+const isWindows = process.platform === "win32"
 
 function writeSymbolicLink(file, optResolver, onWritten) {
   if (!file.symlink) {

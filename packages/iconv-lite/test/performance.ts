@@ -16,7 +16,7 @@ const encodingStrings = {
 // Test encoding.
 let str = encodingStrings[encoding]
 if (!str) {
-  throw new Error(`Don't support ${encoding} performance test.`)
+  throw Error(`Don't support ${encoding} performance test.`)
 }
 for (var i = 0; i < 13; i++) {
   str = str + str

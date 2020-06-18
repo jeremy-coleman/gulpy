@@ -1,3 +1,5 @@
+import { isFunction, isString, isNumber } from "lodash"
+
 // Built-in types
 const types = [
   "object",
@@ -10,7 +12,7 @@ const types = [
 ]
 
 export function normalize(coercer, value) {
-  if (typeof value === "function") {
+  if (isFunction(value)) {
     if (coercer === "function") {
       return value
     }
@@ -21,7 +23,7 @@ export function normalize(coercer, value) {
 
 function coerce(ctx, coercer, value) {
   // Handle built-in types
-  if (typeof coercer === "string") {
+  if (isString(coercer)) {
     if (coerce[coercer]) {
       return coerce[coercer].call(ctx, value)
     }
@@ -29,7 +31,7 @@ function coerce(ctx, coercer, value) {
   }
 
   // Handle custom coercer
-  if (typeof coercer === "function") {
+  if (isFunction(coercer)) {
     return coercer.call(ctx, value)
   }
 
@@ -44,11 +46,7 @@ function coerce(ctx, coercer, value) {
 }
 
 coerce.string = value => {
-  if (
-    value != null &&
-    typeof value === "object" &&
-    typeof value.toString === "function"
-  ) {
+  if (isFunction(value?.toString)) {
     value = value.toString()
   }
   return typeOf("string", primitive(value))
@@ -60,7 +58,7 @@ coerce.boolean = value => typeOf("boolean", primitive(value))
 
 coerce.date = value => {
   value = primitive(value)
-  if (typeof value === "number" && !isNaN(value) && isFinite(value)) {
+  if (isNumber(value) && !isNaN(value) && isFinite(value)) {
     return new Date(value)
   }
 }
@@ -72,7 +70,7 @@ function typeOf(type, value) {
 }
 
 function primitive(value) {
-  if (value != null && typeof value === "object" && typeof value.valueOf === "function") {
+  if (isFunction(value?.valueOf)) {
     value = value.valueOf()
   }
   return value
@@ -87,8 +85,7 @@ types.forEach(type => {
   // Make it an array for easier concat
   const typeArg = [type]
 
-  normalize[type] = function () {
-    const args = slice(arguments)
+  normalize[type] = function (...args) {
     return normalize.apply(this, typeArg.concat(args))
   }
 })

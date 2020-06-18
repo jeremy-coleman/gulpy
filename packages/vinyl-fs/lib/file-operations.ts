@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import { Writable } from "stream"
-import * as constants from "./constants"
+import { MASK_MODE, DEFAULT_FILE_MODE } from "./constants"
 import { isNumber, isFunction } from "lodash"
 
 const APPEND_MODE_REGEXP = /a/
@@ -71,7 +71,7 @@ function getModeDiff(fsMode, vinylMode) {
   let modeDiff = 0
 
   if (isNumber(vinylMode)) {
-    modeDiff = (vinylMode ^ fsMode) & constants.MASK_MODE
+    modeDiff = (vinylMode ^ fsMode) & MASK_MODE
   }
 
   return modeDiff
@@ -319,7 +319,7 @@ function writeFile(filepath, data, options, callback) {
   }
 
   // Default the same as node
-  const mode = options.mode || constants.DEFAULT_FILE_MODE
+  const mode = options.mode || DEFAULT_FILE_MODE
   const flags = options.flags || "w"
   const position = APPEND_MODE_REGEXP.test(flags) ? null : 0
 
@@ -367,7 +367,7 @@ class WriteStream extends Writable {
     this.flush = flush
     this.path = path
 
-    this.mode = options.mode || constants.DEFAULT_FILE_MODE
+    this.mode = options.mode || DEFAULT_FILE_MODE
     this.flags = options.flags || "w"
 
     // Used by node's `fs.WriteStream`

@@ -1,6 +1,7 @@
 import { File } from "vinyl"
 import * as helpers from "./lib/helpers"
 import type { RawSourceMap } from "source-map"
+import { isFunction } from "lodash"
 
 const PLUGIN_NAME = "vinyl-sourcemap"
 
@@ -33,7 +34,7 @@ function add(file: File, callback) {
 
 function write(file, destPath, callback) {
   // Check if options or a callback are passed as second argument
-  if (typeof destPath === "function") {
+  if (isFunction(destPath)) {
     callback = destPath
     destPath = undefined
   }

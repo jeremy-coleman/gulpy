@@ -1,4 +1,5 @@
 import { Duplex as DuplexStream, DuplexOptions as DuplexStreamOption } from "stream"
+import { isObject, isFunction, isNumber, isString } from "lodash"
 
 /**
 	Symbol used to end the stream early.
@@ -54,7 +55,7 @@ export default FirstChunkStream
 		const data = await getStream(stream);
 
 		if (data.length < 7) {
-			throw new Error('Couldn\'t get the minimum required first chunk length');
+			throw Error('Couldn\'t get the minimum required first chunk length');
 		}
 
 		console.log(data);
@@ -70,26 +71,24 @@ export class FirstChunkStream extends DuplexStream {
       size: 0,
     }
 
-    if (typeof options !== "object" || options === null) {
-      throw new TypeError(
-        "FirstChunkStream constructor requires `options` to be an object."
-      )
+    if (!isObject(options) || options === null) {
+      throw TypeError("FirstChunkStream constructor requires `options` to be an object.")
     }
 
-    if (typeof callback !== "function") {
-      throw new TypeError(
+    if (!isFunction(callback)) {
+      throw TypeError(
         "FirstChunkStream constructor requires a callback as its second argument."
       )
     }
 
-    if (typeof options.chunkSize !== "number") {
-      throw new TypeError(
+    if (!isNumber(options.chunkSize)) {
+      throw TypeError(
         "FirstChunkStream constructor requires `options.chunkSize` to be a number."
       )
     }
 
     if (options.objectMode) {
-      throw new Error("FirstChunkStream doesn't support `objectMode` yet.")
+      throw Error("FirstChunkStream doesn't support `objectMode` yet.")
     }
 
     super(options)
@@ -116,7 +115,7 @@ export class FirstChunkStream extends DuplexStream {
         } else if (
           Buffer.isBuffer(result) ||
           result instanceof Uint8Array ||
-          typeof result === "string"
+          isString(result)
         ) {
           state.manager.programPush(result, undefined, done)
         } else {

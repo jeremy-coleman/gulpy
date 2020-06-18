@@ -82,7 +82,7 @@ function globStream(globs: string | string[], opt?: Options) {
 
   function sortGlobs(globString, index) {
     if (!isString(globString)) {
-      throw new Error(`Invalid glob at index ${index}`)
+      throw Error(`Invalid glob at index ${index}`)
     }
 
     const glob = isNegatedGlob(globString)
@@ -95,7 +95,7 @@ function globStream(globs: string | string[], opt?: Options) {
   }
 
   if (positives.length === 0) {
-    throw new Error("Missing positive glob")
+    throw Error("Missing positive glob")
   }
 
   // Create all individual streams

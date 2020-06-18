@@ -18,7 +18,7 @@ export function src(glob: string, opt) {
   const optResolver = createResolver(config, opt)
 
   if (!isValidGlob(glob)) {
-    throw new Error(`Invalid glob argument: ${glob}`)
+    throw Error(`Invalid glob argument: ${glob}`)
   }
 
   const streams = [

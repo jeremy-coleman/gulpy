@@ -22,7 +22,6 @@
   "devDependencies": {
     "bl": "~4.0.2",
     "faucet": "0.0.1",
-    "nyc": "~15.1.0",
     "stream-spigot": "~3.0.6",
     "tape": "~5.0.1"
   }

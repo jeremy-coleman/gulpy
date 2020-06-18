@@ -16,12 +16,6 @@
   "devDependencies": {
     "mocha": "^8.0.1"
   },
-  "nyc": {
-    "reporter": [
-      "lcov",
-      "text-summary"
-    ]
-  },
   "keywords": [
     "fs",
     "mkdirp",

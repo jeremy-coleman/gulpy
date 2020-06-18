@@ -70,7 +70,7 @@ function writeStream(file, optResolver, onWritten) {
       if (key === "removeBOM") {
         return false
       }
-      throw new Error(`Eek! stub resolver doesn't have ${key}`)
+      throw Error(`Eek! stub resolver doesn't have ${key}`)
     }
 
     function complete() {

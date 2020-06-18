@@ -6,7 +6,7 @@ import { isFunction } from "lodash"
 
 function prepareWrite(folderResolver, optResolver) {
   if (!folderResolver) {
-    throw new Error("Invalid output folder")
+    throw Error("Invalid output folder")
   }
 
   function normalize(file, _enc, cb) {

@@ -1,5 +1,5 @@
 import * as domain from "domain"
-import eos from "end-of-stream"
+import eos from "@local/end-of-stream"
 import { once, isFunction } from "lodash"
 import exhaust from "stream-exhaust"
 
@@ -46,24 +46,8 @@ export type AsyncTask<R = any> =
   | ((done: Callback<R>) => void)
   | (() => ChildProcess | EventEmitter | Observable<R> | PromiseLike<R> | Stream)
 
-var eosConfig = {
+const eosConfig = {
   error: false,
-}
-
-function rethrowAsync(err) {
-  process.nextTick(rethrow)
-
-  function rethrow() {
-    throw err
-  }
-}
-
-function tryCatch(fn, args) {
-  try {
-    return fn.apply(null, args)
-  } catch (err) {
-    rethrowAsync(err)
-  }
 }
 
 /**
@@ -82,17 +66,20 @@ export function asyncDone<R = any>(fn: AsyncTask<R>, cb: Callback<R>): void {
   function done(...rest) {
     d.removeListener("error", onError)
     d.exit()
-    return tryCatch(cb, rest)
+    try {
+      return cb(...rest)
+    } catch (e) {
+      process.nextTick(() => {
+        throw e
+      })
+    }
   }
 
   function onSuccess(result) {
     done(null, result)
   }
 
-  function onError(error) {
-    if (!error) {
-      error = new Error("Promise rejected without Error")
-    }
+  function onError(error = Error("Promise rejected without Error")) {
     done(error)
   }
 

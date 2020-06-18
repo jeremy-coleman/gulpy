@@ -23,7 +23,7 @@ const log = {
 function suite() {
   const MASK_MODE = parseInt("7777", 8)
   const DEFAULT_DIR_MODE = parseInt("0777", 8)
-  const isWindows = os.platform() === "win32"
+  const isWindows = process.platform === "win32"
 
   const outputBase = path.join(__dirname, "./out-fixtures")
   const outputDirpath = path.join(outputBase, "./foo")

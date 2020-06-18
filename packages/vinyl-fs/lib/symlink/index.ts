@@ -14,7 +14,7 @@ const folderConfig = {
 
 export function symlink(outFolder, opt) {
   if (!outFolder) {
-    throw new Error(
+    throw Error(
       "Invalid symlink() folder argument." +
         " Please specify a non-empty string or a function."
     )

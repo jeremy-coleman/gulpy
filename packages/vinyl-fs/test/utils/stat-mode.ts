@@ -1,8 +1,8 @@
 import * as fs from "fs"
-import * as constants from "../../lib/constants"
+import { MASK_MODE } from "../../lib/constants"
 
 function masked(mode) {
-  return mode & constants.MASK_MODE
+  return mode & MASK_MODE
 }
 
 function statMode(outputPath) {

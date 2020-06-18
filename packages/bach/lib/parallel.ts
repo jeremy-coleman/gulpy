@@ -4,10 +4,6 @@ import { asyncDone } from "@local/async-done"
 import * as nowAndLater from "now-and-later"
 import * as helpers from "./helpers"
 
-function iterator(fn, _key, cb) {
-  return asyncDone(fn, cb)
-}
-
 export function parallel(...rest) {
   let args = helpers.verifyArguments(rest)
 
@@ -18,7 +14,7 @@ export function parallel(...rest) {
   }
 
   function parallel(done) {
-    nowAndLater.map(args, iterator, extensions, done)
+    nowAndLater.map(args, (fn, _key, cb) => asyncDone(fn, cb), extensions, done)
   }
 
   return parallel

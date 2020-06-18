@@ -23,6 +23,7 @@ export default {
       entries: {
         "lodash-es": "lodash",
         "readable-stream": "stream",
+        "safe-buffer": "buffer",
       },
     }),
     resolve({ extensions }),

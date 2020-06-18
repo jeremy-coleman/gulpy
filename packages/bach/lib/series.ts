@@ -3,10 +3,6 @@ import { asyncDone } from "@local/async-done"
 import * as nowAndLater from "now-and-later"
 import * as helpers from "./helpers"
 
-function iterator(fn, _key, cb) {
-  return asyncDone(fn, cb)
-}
-
 export function series(...rest) {
   let args = helpers.verifyArguments(rest)
 
@@ -17,7 +13,7 @@ export function series(...rest) {
   }
 
   function series(done) {
-    nowAndLater.mapSeries(args, iterator, extensions, done)
+    nowAndLater.mapSeries(args, (fn, _key, cb) => asyncDone(fn, cb), extensions, done)
   }
 
   return series

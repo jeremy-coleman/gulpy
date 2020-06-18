@@ -9,8 +9,7 @@
   },
   "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>",
   "dependencies": {
-    "end-of-stream": "^1.4.4",
-    "once": "^1.4.0"
+    "@local/end-of-stream": "^1.4.4"
   },
   "scripts": {
     "build": "tsc index.ts; sed -i '' 's/lodash-es/lodash/g' index.js && prettier --write index.js",

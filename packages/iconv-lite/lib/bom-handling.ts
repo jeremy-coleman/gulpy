@@ -1,3 +1,5 @@
+import { isFunction } from "lodash"
+
 const BOMChar = "\uFEFF"
 
 export { PrependBOMWrapper as PrependBOM }
@@ -39,7 +41,7 @@ class StripBOMWrapper {
 
     if (res[0] === BOMChar) {
       res = res.slice(1)
-      if (typeof this.options.stripBOM === "function") this.options.stripBOM()
+      if (isFunction(this.options.stripBOM)) this.options.stripBOM()
     }
 
     this.pass = true

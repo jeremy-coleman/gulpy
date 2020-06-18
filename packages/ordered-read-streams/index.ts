@@ -7,7 +7,7 @@ function isReadable({ pipe, readable, _read, _readableState }) {
 
 function addStream(this: OrderedStreams, streams, stream) {
   if (!isReadable(stream)) {
-    throw new Error("All input streams must be readable")
+    throw Error("All input streams must be readable")
   }
 
   const self = this
