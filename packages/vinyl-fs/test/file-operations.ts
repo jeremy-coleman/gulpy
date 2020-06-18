@@ -7,7 +7,7 @@ import mkdirp from "fs-mkdirp-stream/mkdirp"
 import * as fo from "../lib/file-operations"
 import * as constants from "../lib/constants"
 import from from "from2"
-import pipe from "pump2"
+import pipe from "@local/pump"
 
 const DEFAULT_FILE_MODE = constants.DEFAULT_FILE_MODE
 
@@ -885,7 +885,7 @@ describe("writeFile", () => {
 
     writeFile(notExistDir, new Buffer(contents), (err, fd) => {
       expect(err).to.exist
-      expect(typeof fd === "number").to.be.false
+      expect(fd === "number").to.not.be.a("number")
 
       done()
     })

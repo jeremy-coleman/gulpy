@@ -1,5 +1,5 @@
 {
-  "name": "pump2",
+  "name": "@local/pump",
   "version": "3.0.0",
   "repository": "git://github.com/mafintosh/pump.git",
   "license": "MIT",

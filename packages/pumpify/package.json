@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "duplexify": "^4.1.1",
-    "pump2": "^3.0.0"
+    "@local/pump": "^3.0.0"
   },
   "devDependencies": {
     "tape": "^5.0.1",

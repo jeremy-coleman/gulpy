@@ -1,0 +1,22 @@
+{
+  "name": "@local/to-through",
+  "version": "2.0.0",
+  "description": "Wrap a ReadableStream in a TransformStream.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/to-through",
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "lint": "eslint index.js test/ && jscs index.js test/",
+    "pretest": "npm run lint",
+    "test": "mocha -r ts-node/register \"test/**/*.ts\"",
+    "cover": "istanbul cover _mocha --report lcovonly",
+    "coveralls": "npm run cover && istanbul-coveralls"
+  },
+  "dependencies": {
+    "through2": "^3.0.1"
+  }
+}

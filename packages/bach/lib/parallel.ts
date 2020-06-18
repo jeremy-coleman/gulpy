@@ -1,6 +1,6 @@
 import { initial, last } from "lodash"
 
-import { asyncDone } from "async-done"
+import { asyncDone } from "@local/async-done"
 import * as nowAndLater from "now-and-later"
 import * as helpers from "./helpers"
 

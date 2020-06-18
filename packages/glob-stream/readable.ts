@@ -1,8 +1,8 @@
 import { Glob, IGlob } from "glob"
 import { Readable } from "stream"
-import globParent from "glob-parent"
-import toAbsoluteGlob from "to-absolute-glob"
-import removeTrailingSeparator from "remove-trailing-separator"
+import { globParent } from "@local/glob-parent"
+import { removeTrailingSeparator } from "@local/shared"
+import toAbsoluteGlob from "@local/to-absolute-glob"
 import { isString } from "lodash"
 
 const globErrMessage1 = "File not found with singular glob: "

@@ -4,7 +4,7 @@ export { _from as from }
 import concat from "concat-stream"
 export { concat }
 
-import pipe from "pump2"
+import pipe from "@local/pump"
 export { pipe }
 
 // export { default as each } from "stream-each"
@@ -17,7 +17,7 @@ export { pipe }
 
 // import from from "from2"
 // import concat from "concat-stream"
-// import pipe from "pump2"
+// import pipe from "@local/pump"
 // import each from "stream-each"
 // import pipeline from "pumpify"
 // import duplex from "duplexify"

@@ -1,10 +1,15 @@
 import * as fs from "fs"
-import { date } from "value-or-function"
-import { Writable } from "readable-stream"
+import { Writable } from "stream"
 import * as constants from "./constants"
 import { isNumber, isFunction } from "lodash"
 
 const APPEND_MODE_REGEXP = /a/
+
+function date(value: any): Date | undefined {
+  if (value instanceof Date) {
+    return value
+  }
+}
 
 function closeFd(propagatedErr, fd, callback) {
   if (!isNumber(fd)) {

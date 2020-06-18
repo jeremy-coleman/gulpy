@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import _globStream from "../"
 
-import { pump } from "pump2"
+import { pump } from "@local/pump"
 import concat from "concat-stream"
 import * as through2 from "through2"
 

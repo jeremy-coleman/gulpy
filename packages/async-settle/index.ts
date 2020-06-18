@@ -1,4 +1,4 @@
-import { asyncDone } from "async-done"
+import { asyncDone } from "@local/async-done"
 
 export function settle(fn, done) {
   asyncDone(fn, (error, result) => {

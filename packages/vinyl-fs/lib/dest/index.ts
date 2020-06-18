@@ -1,7 +1,7 @@
 import lead from "lead"
 import * as pumpify from "pumpify"
 import mkdirpStream from "fs-mkdirp-stream"
-import createResolver from "resolve-options"
+import createResolver from "@local/resolve-options"
 import config from "./options"
 import prepare from "./prepare"
 import sourcemap from "./sourcemap"

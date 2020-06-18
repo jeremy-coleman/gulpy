@@ -16,7 +16,7 @@
     "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
-    "async-done": "^1.3.2"
+    "@local/async-done": "^1.3.2"
   },
   "keywords": [
     "settle",

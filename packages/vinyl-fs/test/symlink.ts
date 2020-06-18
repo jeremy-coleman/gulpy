@@ -12,7 +12,7 @@ import breakPrototype from "./utils/break-prototype"
 
 import from from "from2"
 import concat from "concat-stream"
-import pipe from "pump2"
+import pipe from "@local/pump"
 
 const count = testStreams.count
 const slowCount = testStreams.slowCount

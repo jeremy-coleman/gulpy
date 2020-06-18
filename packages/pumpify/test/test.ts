@@ -1,7 +1,7 @@
 import tape from "tape"
 import * as through from "through2"
 import pumpify from "../"
-import stream from "stream"
+import * as stream from "stream"
 import duplexify from "duplexify"
 
 tape("basic", t => {

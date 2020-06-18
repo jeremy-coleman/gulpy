@@ -1,4 +1,4 @@
-import { asyncDone } from "async-done"
+import { asyncDone } from "@local/async-done"
 
 function success(): Promise<number> {
   return Promise.resolve(2)

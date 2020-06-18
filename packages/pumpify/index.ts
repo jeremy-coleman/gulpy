@@ -1,4 +1,4 @@
-import pipe from "pump2"
+import pipe from "@local/pump"
 import Duplexify from "duplexify"
 
 const toArray = args => {

@@ -1,5 +1,5 @@
-import { asyncDone } from "async-done"
-import { Readable, Stream } from "stream"
+import { asyncDone } from "@local/async-done"
+import { Stream } from "stream"
 
 function streamSuccess(): Stream {
   return new Stream()

@@ -5,7 +5,7 @@ import cleanup from "./utils/cleanup"
 import testConstants from "./utils/test-constants"
 
 import concat from "concat-stream"
-import pipe from "pump2"
+import pipe from "@local/pump"
 
 const outputBase = testConstants.outputBase
 const inputPath = testConstants.inputPath

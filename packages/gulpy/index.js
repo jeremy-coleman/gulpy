@@ -9,30 +9,19 @@ var events = require("events")
 var lodash = require("lodash")
 var domain = require("domain")
 var stream = require("stream")
-var stream__default = _interopDefault(stream)
 var util = require("util")
-var inherits = _interopDefault(require("inherits"))
-var shift = _interopDefault(require("stream-shift"))
 var glob = require("glob")
-var globParent = _interopDefault(require("glob-parent"))
-var toAbsoluteGlob = _interopDefault(require("to-absolute-glob"))
-var removeTrailingSep = _interopDefault(require("remove-trailing-separator"))
-var toThrough = _interopDefault(require("to-through"))
-var isValidGlob = _interopDefault(require("is-valid-glob"))
-var createResolver = _interopDefault(require("resolve-options"))
 var path = require("path")
-var cloneable = _interopDefault(require("cloneable-readable"))
+var normalize$1 = _interopDefault(require("value-or-function"))
 var sourcemap = _interopDefault(require("vinyl-sourcemap"))
 var fs = require("fs")
 var removeBomStream = _interopDefault(require("remove-bom-stream"))
 var lazystream = _interopDefault(require("lazystream"))
 var iconv = _interopDefault(require("iconv-lite"))
 var removeBomBuffer = _interopDefault(require("remove-bom-buffer"))
-var valueOrFunction = require("value-or-function")
-var lead = _interopDefault(require("lead"))
 var fs$1 = require("fs-extra")
 var os = require("os")
-var chokidar = _interopDefault(require("chokidar"))
+var chokidar = require("chokidar")
 var anymatch = _interopDefault(require("anymatch"))
 
 function isRequest(stream) {
@@ -42,8 +31,6 @@ function isRequest(stream) {
 function isChildProcess(stream) {
   return stream.stdio && Array.isArray(stream.stdio) && stream.stdio.length === 3
 }
-
-module.exports = exports = eos
 
 function eos(stream, opts, _callback) {
   if (lodash.isFunction(opts)) return eos(stream, {}, opts)
@@ -1066,6 +1053,26 @@ function unique(by, keyStore = new Set()) {
   })
 }
 
+function shift(stream) {
+  const rs = stream["_readableState"]
+  if (!rs) return null
+  return rs.objectMode || lodash.isNumber(stream["_duplexState"])
+    ? stream.read()
+    : stream.read(getStateLength(rs))
+}
+
+function getStateLength(state) {
+  if (state.buffer.length) {
+    if (state.buffer.head) {
+      return state.buffer.head.data.length
+    }
+
+    return state.buffer[0].length
+  }
+
+  return state.length
+}
+
 const SIGNAL_FLUSH =
   Buffer.from && Buffer.from !== Uint8Array.from ? Buffer.from([0]) : new Buffer([0])
 
@@ -1091,24 +1098,21 @@ const end = (ws, fn) => {
   fn()
 }
 
-const noop$1 = () => {}
-
 const toStreams2 = rs =>
-  new stream__default.Readable({
+  new stream.Readable({
     objectMode: true,
     highWaterMark: 16,
   }).wrap(rs)
 
-class Duplexify {
+class Duplexify extends stream.Duplex {
   constructor(writable, readable, opts) {
-    if (!(this instanceof Duplexify)) return new Duplexify(writable, readable, opts)
-    stream__default.Duplex.call(this, opts)
+    super(opts)
     this._writable = null
     this._readable = null
     this._readable2 = null
-    this._autoDestroy = !opts || opts.autoDestroy !== false
-    this._forwardDestroy = !opts || opts.destroy !== false
-    this._forwardEnd = !opts || opts.end !== false
+    this._autoDestroy = void 0
+    this._forwardDestroy = void 0
+    this._forwardEnd = void 0
     this._corked = 1
     this._ondrain = null
     this._drained = false
@@ -1116,6 +1120,9 @@ class Duplexify {
     this._unwrite = null
     this._unread = null
     this._ended = false
+    this._autoDestroy = !opts || opts.autoDestroy !== false
+    this._forwardDestroy = !opts || opts.destroy !== false
+    this._forwardEnd = !opts || opts.end !== false
     this.destroyed = false
     if (writable) this.setWritable(writable)
     if (readable) this.setReadable(readable)
@@ -1141,8 +1148,6 @@ class Duplexify {
       this.end()
       return
     }
-
-    const self = this
     const unend = eos(
       writable,
       {
@@ -1153,13 +1158,13 @@ class Duplexify {
     )
 
     const ondrain = () => {
-      const ondrain = self._ondrain
-      self._ondrain = null
+      const ondrain = this._ondrain
+      this._ondrain = null
       if (ondrain) ondrain()
     }
 
     const clear = () => {
-      self._writable.removeListener("drain", ondrain)
+      this._writable.removeListener("drain", ondrain)
 
       unend()
     }
@@ -1186,8 +1191,6 @@ class Duplexify {
       this.resume()
       return
     }
-
-    const self = this
     const unend = eos(
       readable,
       {
@@ -1198,17 +1201,17 @@ class Duplexify {
     )
 
     const onreadable = () => {
-      self._forward()
+      this._forward()
     }
 
     const onend = () => {
-      self.push(null)
+      this.push(null)
     }
 
     const clear = () => {
-      self._readable2.removeListener("readable", onreadable)
+      this._readable2.removeListener("readable", onreadable)
 
-      self._readable2.removeListener("end", onend)
+      this._readable2.removeListener("end", onend)
 
       unend()
     }
@@ -1246,7 +1249,7 @@ class Duplexify {
   }
 
   destroy(err, cb) {
-    if (!cb) cb = noop$1
+    if (!cb) cb = lodash.noop
     if (this.destroyed) return cb(null)
     this.destroyed = true
     const self = this
@@ -1296,18 +1299,20 @@ class Duplexify {
   }
 
   end(data, enc, cb) {
-    if (typeof data === "function") return this.end(null, null, data)
-    if (typeof enc === "function") return this.end(data, null, enc)
+    if (lodash.isFunction(data)) return this.end(null, null, data)
+    if (lodash.isFunction(enc)) return this.end(data, null, enc)
     this._ended = true
     if (data) this.write(data)
     if (!this._writableState.ending) this.write(SIGNAL_FLUSH)
-    return stream__default.Writable.prototype.end.call(this, cb)
+    return stream.Writable.prototype.end.call(this, cb)
   }
 }
 
-inherits(Duplexify, stream__default.Duplex)
+function duplexify(writable, readable, opts) {
+  return new Duplexify(writable, readable, opts)
+}
 
-Duplexify.obj = (writable, readable, opts) => {
+duplexify.obj = (writable, readable, opts) => {
   if (!opts) opts = {}
   opts.objectMode = true
   opts.highWaterMark = 16
@@ -1320,7 +1325,7 @@ const toArray = args => {
 }
 
 const define = opts => {
-  class Pumpify extends Duplexify {
+  class Pumpify extends duplexify {
     constructor(...args) {
       const streams = toArray(args)
       super(null, null, opts)
@@ -1372,8 +1377,8 @@ const obj$1 = define({
 })
 
 function isNegatedGlob(pattern) {
-  if (typeof pattern !== "string") {
-    throw new TypeError("expected a string")
+  if (!lodash.isString(pattern)) {
+    throw TypeError("expected a string")
   }
 
   const glob = {
@@ -1402,6 +1407,160 @@ function _classPrivateFieldLooseBase(receiver, privateKey) {
   }
 
   return receiver
+}
+
+const regex = /(\\).|([@?!+*]\(.*\))/
+function isExtGlob(str) {
+  if (!lodash.isString(str) || str === "") {
+    return false
+  }
+
+  let match
+
+  while ((match = regex.exec(str))) {
+    if (match[2]) return true
+    str = str.slice(match.index + match[0].length)
+  }
+
+  return false
+}
+
+const chars = {
+  "{": "}",
+  "(": ")",
+  "[": "]",
+}
+const strictRegex = /\\(.)|(^!|\*|[\].+)]\?|\[[^\\\]]+\]|\{[^\\}]+\}|\(\?[:!=][^\\)]+\)|\([^|]+\|[^\\)]+\))/
+const relaxedRegex = /\\(.)|(^!|[*?{}()[\]]|\(\?)/
+function isGlob(
+  str,
+  options = {
+    strict: true,
+  }
+) {
+  if (!lodash.isString(str) || str === "") {
+    return false
+  }
+
+  if (isExtGlob(str)) {
+    return true
+  }
+
+  let regex = strictRegex
+  let match
+
+  if ((options === null || options === void 0 ? void 0 : options.strict) === false) {
+    regex = relaxedRegex
+  }
+
+  while ((match = regex.exec(str))) {
+    if (match[2]) return true
+    let idx = match.index + match[0].length
+    const open = match[1]
+    const close = open ? chars[open] : null
+
+    if (open && close) {
+      const n = str.indexOf(close, idx)
+
+      if (n !== -1) {
+        idx = n + 1
+      }
+    }
+
+    str = str.slice(idx)
+  }
+
+  return false
+}
+
+const pathPosixDirname = path.posix.dirname
+const isWin32 = process.platform === "win32"
+const slash = "/"
+const backslash = /\\/g
+const enclosure = /[\{\[].*[\/]*.*[\}\]]$/
+const globby = /(^|[^\\])([\{\[]|\([^\)]+$)/
+const escaped = /\\([\!\*\?\|\[\]\(\)\{\}])/g
+function globParent(str, opts = {}) {
+  var _opts$flipBackslashes
+
+  const flipBackslashes =
+    (_opts$flipBackslashes = opts.flipBackslashes) != null ? _opts$flipBackslashes : true
+
+  if (flipBackslashes && isWin32 && !str.includes(slash)) {
+    str = str.replace(backslash, slash)
+  }
+
+  if (enclosure.test(str)) {
+    str += slash
+  }
+
+  str += "a"
+
+  do {
+    str = pathPosixDirname(str)
+  } while (isGlob(str) || globby.test(str))
+
+  return str.replace(escaped, "$1")
+}
+
+function removeTrailingSeparator(path) {
+  return path.replace(/(?<=.)\/+$/, "")
+}
+
+var toAbsoluteGlob = (glob, options) => {
+  const opts = options || {}
+  let cwd = path.resolve(opts.cwd ? opts.cwd : process.cwd())
+  cwd = unixify(cwd)
+  let rootDir = opts.root
+
+  if (rootDir) {
+    rootDir = unixify(rootDir)
+
+    if (process.platform === "win32" || !path.isAbsolute(rootDir)) {
+      rootDir = unixify(path.resolve(rootDir))
+    }
+  }
+
+  if (glob.slice(0, 2) === "./") {
+    glob = glob.slice(2)
+  }
+
+  if (glob.length === 1 && glob === ".") {
+    glob = ""
+  }
+
+  const suffix = glob.slice(-1)
+  const ing = isNegatedGlob(glob)
+  glob = ing.pattern
+
+  if (rootDir && glob.charAt(0) === "/") {
+    glob = join(rootDir, glob)
+  } else if (!path.isAbsolute(glob) || glob.slice(0, 1) === "\\") {
+    glob = join(cwd, glob)
+  }
+
+  if (suffix === "/" && glob.slice(-1) !== "/") {
+    glob += "/"
+  }
+
+  return ing.negated ? `!${glob}` : glob
+}
+
+function unixify(filepath) {
+  return filepath.replace(/\\/g, "/")
+}
+
+function join(dir, glob) {
+  if (dir.charAt(dir.length - 1) === "/") {
+    dir = dir.slice(0, -1)
+  }
+
+  if (glob.charAt(0) === "/") {
+    glob = glob.slice(1)
+  }
+
+  if (!glob) return dir
+  return `${dir}/${glob}`
 }
 
 const globErrMessage1 = "File not found with singular glob: "
@@ -1453,7 +1612,7 @@ class GlobStream extends stream.Readable {
       const obj = {
         cwd,
         base: basePath,
-        path: removeTrailingSep(filepath),
+        path: removeTrailingSeparator(filepath),
       }
 
       if (!this.push(obj)) {
@@ -1572,6 +1731,155 @@ function toGlob({ glob }) {
   return glob
 }
 
+function forward(chunk, enc, cb) {
+  cb(null, chunk)
+}
+
+function toThrough(readable) {
+  const opts = {
+    objectMode: readable._readableState.objectMode,
+    highWaterMark: readable._readableState.highWaterMark,
+  }
+
+  function flush(cb) {
+    const self = this
+    readable.on("readable", onReadable)
+    readable.on("end", cb)
+
+    function onReadable() {
+      let chunk
+
+      while ((chunk = readable.read())) {
+        self.push(chunk)
+      }
+    }
+  }
+
+  const wrapper = main(opts, forward, flush)
+  let shouldFlow = true
+  wrapper.once("pipe", onPipe)
+  wrapper.on("newListener", onListener)
+  readable.on("error", wrapper.emit.bind(wrapper, "error"))
+
+  function onListener(event) {
+    if (event === "data" || event === "readable") {
+      maybeFlow()
+      this.removeListener("newListener", onListener)
+    }
+  }
+
+  function onPipe() {
+    shouldFlow = false
+  }
+
+  function maybeFlow() {
+    if (shouldFlow) {
+      wrapper.end()
+    }
+  }
+
+  return wrapper
+}
+
+const slice = Array.prototype.slice
+
+function createResolver(config = {}, options = {}) {
+  const resolver = {
+    resolve,
+  }
+  const constants = {}
+
+  function resolveConstant(key) {
+    if (constants.hasOwnProperty(key)) {
+      return constants[key]
+    }
+
+    const definition = config[key]
+
+    if (!definition) {
+      return
+    }
+
+    let option = options[key]
+
+    if (option != null) {
+      if (typeof option === "function") {
+        return
+      }
+
+      option = normalize$1.call(resolver, definition.type, option)
+
+      if (option != null) {
+        constants[key] = option
+        return option
+      }
+    }
+
+    const fallback = definition.default
+
+    if (option == null && typeof fallback !== "function") {
+      constants[key] = fallback
+      return fallback
+    }
+  }
+
+  const stack = []
+
+  function resolve(key) {
+    let option = resolveConstant(key)
+
+    if (option != null) {
+      return option
+    }
+
+    const definition = config[key]
+
+    if (!definition) {
+      return
+    }
+
+    if (stack.includes(key)) {
+      throw new Error("Recursive resolution denied.")
+    }
+
+    option = options[key]
+    const fallback = definition.default
+    const appliedArgs = slice.call(arguments, 1)
+    const args = [definition.type, option].concat(appliedArgs)
+
+    function toResolve() {
+      stack.push(key)
+      let option = normalize$1.apply(resolver, args)
+
+      if (option == null) {
+        option = fallback
+
+        if (typeof option === "function") {
+          option = option.apply(resolver, appliedArgs)
+        }
+      }
+
+      return option
+    }
+
+    function onResolve() {
+      stack.pop()
+    }
+
+    return tryResolve(toResolve, onResolve)
+  }
+
+  return resolver
+}
+
+function tryResolve(toResolve, onResolve) {
+  try {
+    return toResolve()
+  } finally {
+    onResolve()
+  }
+}
+
 const MASK_MODE = parseInt("7777", 8)
 const DEFAULT_FILE_MODE = parseInt("0666", 8)
 const DEFAULT_ENCODING = "utf8"
@@ -1619,6 +1927,128 @@ function prepareRead(optResolver) {
 
   return main.obj(normalize)
 }
+
+class Cloneable extends stream.PassThrough {
+  constructor(stream, opts) {
+    const objectMode = stream._readableState.objectMode
+    opts = opts || {}
+    opts.objectMode = objectMode
+    super(opts)
+    this._original = stream
+    this._clonesCount = 1
+    forwardDestroy(stream, this)
+    this.on("newListener", onData)
+    this.once("resume", onResume)
+    this._hasListener = true
+  }
+
+  clone() {
+    if (!this._original) {
+      throw new Error("already started")
+    }
+
+    this._clonesCount++
+    this.removeListener("newListener", onData)
+    const clone = new Clone(this)
+
+    if (this._hasListener) {
+      this.on("newListener", onData)
+    }
+
+    return clone
+  }
+
+  _destroy(err, cb) {
+    if (!err) {
+      this.push(null)
+      this.end()
+    }
+
+    process.nextTick(cb, err)
+  }
+}
+
+function onData(event, listener) {
+  if (event === "data" || event === "readable") {
+    this._hasListener = false
+    this.removeListener("newListener", onData)
+    this.removeListener("resume", onResume)
+    process.nextTick(clonePiped, this)
+  }
+}
+
+function onResume() {
+  this._hasListener = false
+  this.removeListener("newListener", onData)
+  process.nextTick(clonePiped, this)
+}
+
+function forwardDestroy(src, dest) {
+  src.on("error", destroy)
+  src.on("close", onClose)
+
+  function destroy(err) {
+    src.removeListener("close", onClose)
+    dest.destroy(err)
+  }
+
+  function onClose() {
+    dest.end()
+  }
+}
+
+function clonePiped(that) {
+  if (--that._clonesCount === 0 && !that._readableState.destroyed) {
+    that._original.pipe(that)
+
+    that._original = undefined
+  }
+}
+
+class Clone extends stream.PassThrough {
+  constructor(parent, opts) {
+    if (!(this instanceof Clone)) {
+      return new Clone(parent, opts)
+    }
+
+    const objectMode = parent._readableState.objectMode
+    opts = opts || {}
+    opts.objectMode = objectMode
+    this.parent = parent
+    super(opts)
+    forwardDestroy(parent, this)
+    parent.pipe(this)
+    this.on("newListener", onDataClone)
+    this.on("resume", onResumeClone)
+  }
+
+  clone() {
+    return this.parent.clone()
+  }
+
+  _destroy(err, cb) {
+    if (!err) {
+      this.push(null)
+      this.end()
+    }
+
+    process.nextTick(cb, err)
+  }
+}
+
+function onDataClone(event, listener) {
+  if (event === "data" || event === "readable" || event === "close") {
+    process.nextTick(clonePiped, this.parent)
+    this.removeListener("newListener", onDataClone)
+  }
+}
+
+function onResumeClone() {
+  this.removeListener("newListener", onDataClone)
+  process.nextTick(clonePiped, this.parent)
+}
+
+Cloneable.isCloneable = stream => stream instanceof Cloneable || stream instanceof Clone
 
 function replaceExt(nPath, ext) {
   if (!lodash.isString(nPath)) {
@@ -1827,8 +2257,8 @@ class File {
       throw Error("File.contents can only be a Buffer, a Stream, or null.")
     }
 
-    if (isStream(val) && !cloneable.isCloneable(val)) {
-      val = cloneable(val)
+    if (isStream(val) && !Cloneable.isCloneable(val)) {
+      val = Cloneable(val)
     }
 
     this._contents = val
@@ -1843,7 +2273,7 @@ class File {
       throw Error("cwd must be a non-empty string.")
     }
 
-    this._cwd = removeTrailingSep(normalize(cwd))
+    this._cwd = removeTrailingSeparator(normalize(cwd))
   }
 
   get base() {
@@ -1860,7 +2290,7 @@ class File {
       throw Error("base must be a non-empty string, or null/undefined.")
     }
 
-    base = removeTrailingSep(normalize(base))
+    base = removeTrailingSeparator(normalize(base))
 
     if (base !== this._cwd) {
       this._base = base
@@ -1956,7 +2386,7 @@ class File {
       throw Error("path should be a string.")
     }
 
-    path = removeTrailingSep(normalize(path))
+    path = removeTrailingSeparator(normalize(path))
 
     if (path && path !== this.path) {
       this.history.push(path)
@@ -1972,7 +2402,7 @@ class File {
       throw Error("symlink should be a string")
     }
 
-    this._symlink = removeTrailingSep(normalize(symlink))
+    this._symlink = removeTrailingSeparator(normalize(symlink))
   }
 
   static isCustomProp(key) {
@@ -2247,6 +2677,12 @@ function readContents(optResolver) {
 
 const APPEND_MODE_REGEXP = /a/
 
+function date(value) {
+  if (value instanceof Date) {
+    return value
+  }
+}
+
 function closeFd(propagatedErr, fd, callback) {
   if (!lodash.isNumber(fd)) {
     return callback(propagatedErr)
@@ -2316,20 +2752,20 @@ function getModeDiff(fsMode, vinylMode) {
 }
 
 function getTimesDiff(fsStat, vinylStat) {
-  const mtime = valueOrFunction.date(vinylStat.mtime) || 0
+  const mtime = date(vinylStat.mtime) || 0
 
   if (!mtime) {
     return
   }
 
-  let atime = valueOrFunction.date(vinylStat.atime) || 0
+  let atime = date(vinylStat.atime) || 0
 
   if (+mtime === +fsStat.mtime && +atime === +fsStat.atime) {
     return
   }
 
   if (!atime) {
-    atime = valueOrFunction.date(fsStat.atime) || undefined
+    atime = date(fsStat.atime) || undefined
   }
 
   const timesDiff = {
@@ -2707,6 +3143,10 @@ function resolveSymlinks(optResolver) {
   return main.obj(resolveFile)
 }
 
+function isValidGlob(glob) {
+  return Array.isArray(glob) ? glob.every(isValidGlob) : lodash.isString(glob)
+}
+
 function src(glob, opt) {
   const optResolver = createResolver(config, opt)
 
@@ -2724,6 +3164,49 @@ function src(glob, opt) {
   ]
   const outputStream = pumpify.obj(streams)
   return toThrough(outputStream)
+}
+
+function listenerCount(stream, evt) {
+  return stream.listeners(evt).length
+}
+
+function hasListeners(stream) {
+  return !!(listenerCount(stream, "readable") || listenerCount(stream, "data"))
+}
+
+function sink(stream$1) {
+  let sinkAdded = false
+  const sinkStream = new stream.Writable()
+
+  function addSink() {
+    if (sinkAdded) {
+      return
+    }
+
+    if (hasListeners(stream$1)) {
+      return
+    }
+
+    sinkAdded = true
+    stream$1.pipe(sinkStream)
+  }
+
+  function removeSink(evt) {
+    if (evt !== "readable" && evt !== "data") {
+      return
+    }
+
+    if (hasListeners(stream$1)) {
+      sinkAdded = false
+      stream$1.unpipe(sinkStream)
+    }
+  }
+
+  stream$1.on("newListener", removeSink)
+  stream$1.on("removeListener", removeSink)
+  stream$1.on("removeListener", addSink)
+  process.nextTick(addSink)
+  return stream$1
 }
 
 const MASK_MODE$1 = parseInt("7777", 8)
@@ -3206,7 +3689,7 @@ function dest(outFolder, opt) {
     mkdirpStream.obj(dirpath),
     writeContents(optResolver)
   )
-  return lead(saveStream)
+  return sink(saveStream)
 }
 
 const config$2 = {
@@ -3352,7 +3835,7 @@ function symlink$1(outFolder, opt) {
     mkdirpStream.obj(dirpath),
     linkStream(optResolver)
   )
-  return lead(stream)
+  return sink(stream)
 }
 
 const defaultOpts = {
@@ -3363,7 +3846,7 @@ const defaultOpts = {
   queue: true,
 }
 
-function listenerCount(ee, evtName) {
+function listenerCount$1(ee, evtName) {
   if (lodash.isFunction(ee.listenerCount)) {
     return ee.listenerCount(evtName)
   }
@@ -3372,7 +3855,7 @@ function listenerCount(ee, evtName) {
 }
 
 function hasErrorListener(ee) {
-  return listenerCount(ee, "error") !== 0
+  return listenerCount$1(ee, "error") !== 0
 }
 
 function exists(val) {

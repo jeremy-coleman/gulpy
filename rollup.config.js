@@ -10,7 +10,10 @@ const extensions = [".js", ".ts"]
 
 export default {
   input: "packages/gulp/index.ts",
-  external: module => !internal.includes(module) && !module.startsWith("."),
+  external: module =>
+    !internal.includes(module) &&
+    !module.startsWith(".") &&
+    !module.startsWith("@local/"),
   output: {
     file: "packages/gulpy/index.js",
     format: "cjs",

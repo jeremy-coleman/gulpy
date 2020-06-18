@@ -3,7 +3,7 @@ import { OrderedStreams } from "../index"
 
 import from from "from2"
 import concat from "concat-stream"
-import pipe from "pump2"
+import pipe from "@local/pump"
 import to from "flush-write-stream"
 
 function fromOnce(fn) {

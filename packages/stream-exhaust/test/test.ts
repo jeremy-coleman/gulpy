@@ -1,7 +1,7 @@
 import exhaust from "../index"
 import { expect } from "chai"
 import Stream, { Readable, Writable } from "stream"
-import { Readable as S2Readable } from "readable-stream"
+import { Readable as S2Readable } from "stream"
 import through from "through2"
 
 describe("stream-exhaust", () => {

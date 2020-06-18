@@ -73,17 +73,9 @@ The easiest way to create a custom registry is to inherit from
 [undertaker-registry](https://www.npmjs.com/package/undertaker-registry):
 
 ```javascript
-var util = require("util")
-
 import { DefaultRegistry } from "undertaker-registry"
 
-function MyRegistry() {
-  DefaultRegistry.call(this)
-}
-
-util.inherits(MyRegistry, DefaultRegistry)
-
-module.exports = MyRegistry
+export class MyRegistry extends DefaultRegistry {}
 ```
 
 ### Sharing tasks
@@ -95,49 +87,39 @@ prototype and it will receive the Undertaker instance as the only argument. You 
 For example you might want to share a `clean` task:
 
 ```javascript
-var fs = require("fs")
-var util = require("util")
-
+import * as fs from "fs"
 import { DefaultRegistry } from "undertaker-registry"
-var del = require("del")
+import del from "del"
 
-function CommonRegistry(opts) {
-  DefaultRegistry.call(this)
-
-  opts = opts || {}
-
-  this.buildDir = opts.buildDir || "./build"
-}
-
-util.inherits(CommonRegistry, DefaultRegistry)
-
-CommonRegistry.prototype.init = function (takerInst) {
-  var buildDir = this.buildDir
-  var exists = fs.existsSync(buildDir)
-
-  if (exists) {
-    throw new Error("Cannot initialize common tasks. " + buildDir + " directory exists.")
+export class CommonRegistry extends DefaultRegistry {
+  constructor(opts = {}) {
+    super()
+    this.buildDir = opts.buildDir ?? "./build"
   }
+  init(takerInst) {
+    const buildDir = this.buildDir
+    const exists = fs.existsSync(buildDir)
 
-  takerInst.task("clean", function () {
-    return del([buildDir])
-  })
+    if (exists) {
+      throw Error(`Cannot initialize common tasks. ${buildDir} directory exists.`)
+    }
+
+    takerInst.task("clean", () => del([buildDir]))
+  }
 }
-
-module.exports = CommonRegistry
 ```
 
 Then to use it in a project:
 
 ```javascript
-var Undertaker = require("undertaker")
-var CommonRegistry = require("myorg-common-tasks")
+import Undertaker from "undertaker"
+import { CommonRegistry } from "myorg-common-tasks"
 
-var taker = new Undertaker(CommonRegistry({ buildDir: "/dist" }))
+const taker = new Undertaker(CommonRegistry({ buildDir: "/dist" }))
 
 taker.task(
   "build",
-  taker.series("clean", function build(cb) {
+  taker.series("clean", cb => {
     // do things
     cb()
   })
@@ -153,29 +135,28 @@ to bind them to that data. Be sure to return the altered task, as per the descri
 of registry methods above:
 
 ```javascript
-var util = require("util")
-
-var Undertaker = require("undertaker")
+import Undertaker from "undertaker"
 import { DefaultRegistry } from "undertaker-registry"
 
 // Some task defined somewhere else
-var BuildRegistry = require("./build.js")
-var ServeRegistry = require("./serve.js")
+import { BuildRegistry } from "./build"
+import { ServeRegistry } from "./serve"
 
-function ConfigRegistry(config) {
-  DefaultRegistry.call(this)
-  this.config = config
+class ConfigRegistry extends DefaultRegistry {
+  constructor(config) {
+    super()
+    this.config = config
+  }
+
+  set(name, fn) {
+    // The `DefaultRegistry` uses `this._tasks` for storage.
+    const task = fn.bind(this.config)
+    this._tasks.set(name, fn)
+    return task
+  }
 }
 
-util.inherits(ConfigRegistry, DefaultRegistry)
-
-ConfigRegistry.prototype.set = function set(name, fn) {
-  // The `DefaultRegistry` uses `this._tasks` for storage.
-  var task = (this._tasks[name] = fn.bind(this.config))
-  return task
-}
-
-var taker = new Undertaker()
+const taker = new Undertaker()
 
 taker.registry(new BuildRegistry())
 taker.registry(new ServeRegistry())

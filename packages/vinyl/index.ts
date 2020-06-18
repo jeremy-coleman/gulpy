@@ -3,9 +3,9 @@ import { inspect } from "util"
 import * as fs from "fs"
 
 import { clone, forEach, isBoolean, last, isString, isFunction, cloneDeep } from "lodash"
-import cloneable from "cloneable-readable"
+import cloneable from "@local/cloneable-readable"
 import replaceExt from "replace-ext"
-import removeTrailingSep from "remove-trailing-separator"
+import { removeTrailingSeparator } from "@local/shared"
 import { isStream } from "./lib/is-stream"
 import { normalize } from "./lib/normalize"
 import { inspectStream } from "./lib/inspect-stream"
@@ -364,7 +364,7 @@ class File {
     if (!cwd || !isString(cwd)) {
       throw Error("cwd must be a non-empty string.")
     }
-    this._cwd = removeTrailingSep(normalize(cwd))
+    this._cwd = removeTrailingSeparator(normalize(cwd))
   }
 
   /**
@@ -391,7 +391,7 @@ class File {
     if (!isString(base) || !base) {
       throw Error("base must be a non-empty string, or null/undefined.")
     }
-    base = removeTrailingSep(normalize(base))
+    base = removeTrailingSeparator(normalize(base))
     if (base !== this._cwd) {
       this._base = base
     } else {
@@ -596,7 +596,7 @@ class File {
     if (!isString(path)) {
       throw Error("path should be a string.")
     }
-    path = removeTrailingSep(normalize(path))
+    path = removeTrailingSeparator(normalize(path))
 
     // Record history only when path changed
     if (path && path !== this.path) {
@@ -620,7 +620,7 @@ class File {
       throw Error("symlink should be a string")
     }
 
-    this._symlink = removeTrailingSep(normalize(symlink))
+    this._symlink = removeTrailingSeparator(normalize(symlink))
   }
 
   /**

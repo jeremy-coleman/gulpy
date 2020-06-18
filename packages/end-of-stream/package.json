@@ -7,7 +7,7 @@
     "url": "git://github.com/mafintosh/end-of-stream.git"
   },
   "scripts": {
-    "build": "tsc index.ts; sed -i '' 's/lodash-es/lodash/g' index.js && prettier --write index.js",
+    "build": "tsc --noImplicitUseStrict index.ts; sed -i '' '1s;^;module.exports=exports=eos\\;;' index.js && prettier --write index.js",
     "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "keywords": [

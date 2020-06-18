@@ -1,4 +1,4 @@
-import { asyncDone } from "async-done"
+import { asyncDone } from "@local/async-done"
 import cp from "child_process"
 
 function success(): cp.ChildProcess {

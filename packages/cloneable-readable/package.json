@@ -1,0 +1,25 @@
+{
+  "name": "@local/cloneable-readable",
+  "version": "2.0.1",
+  "description": "Clone a Readable stream, safely",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "precommit": "test",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcollina/cloneable-readable.git"
+  },
+  "author": "Matteo Collina <hello@matteocollina.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mcollina/cloneable-readable/issues"
+  },
+  "homepage": "https://github.com/mcollina/cloneable-readable#readme",
+  "devDependencies": {
+    "flush-write-stream": "^2.0.0",
+    "from2": "^2.3.0"
+  },
+  "dependencies": {}
+}

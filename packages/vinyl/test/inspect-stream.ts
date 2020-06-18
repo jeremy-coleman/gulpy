@@ -1,6 +1,6 @@
 import { Stream } from "stream"
 import { expect } from "chai"
-import Cloneable from "cloneable-readable"
+import Cloneable from "@local/cloneable-readable"
 import { inspectStream } from "../lib/inspect-stream"
 
 describe("inspectStream()", () => {

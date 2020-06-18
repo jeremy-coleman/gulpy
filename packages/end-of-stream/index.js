@@ -1,13 +1,14 @@
-"use strict"
+module.exports = exports = eos
 exports.__esModule = true
+exports.eos = exports.isRequest = void 0
 var lodash_1 = require("lodash")
 function isRequest(stream) {
-  return stream.setHeader && typeof stream.abort === "function"
+  return stream.setHeader && lodash_1.isFunction(stream.abort)
 }
+exports.isRequest = isRequest
 function isChildProcess(stream) {
   return stream.stdio && Array.isArray(stream.stdio) && stream.stdio.length === 3
 }
-module.exports = exports = eos
 exports["default"] = eos
 function eos(stream, opts, _callback) {
   if (lodash_1.isFunction(opts)) return eos(stream, {}, opts)
@@ -88,3 +89,4 @@ function eos(stream, opts, _callback) {
     stream.removeListener("close", onClose)
   }
 }
+exports.eos = eos

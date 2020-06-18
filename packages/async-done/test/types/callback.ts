@@ -1,4 +1,4 @@
-import { asyncDone, Callback } from "async-done"
+import { asyncDone, Callback } from "@local/async-done"
 
 function success(cb: Callback<number>): void {
   cb(null, 2)

@@ -29,8 +29,8 @@ export type Stream =
   | ChildProcessWithoutNullStreams
 type Callback = (error?: Error | null) => void
 
-module.exports = exports = eos
 export default eos
+export { eos }
 
 function eos(stream: Stream, callback?: Callback): () => void
 function eos(stream: Stream, options: Options, callback?: Callback): () => void

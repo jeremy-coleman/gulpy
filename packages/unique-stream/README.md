@@ -21,7 +21,7 @@ $ npm install unique-stream
 
 ```ts
 import unique from "unique-stream"
-import Stream from "stream"
+import { Stream } from "stream"
 
 // return a stream of 3 identical objects
 function makeStreamOfObjects() {

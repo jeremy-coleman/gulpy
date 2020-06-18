@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import unique from "../index"
-import Stream from "stream"
+import { Stream } from "stream"
 import after from "after"
 
 describe("unique stream", () => {

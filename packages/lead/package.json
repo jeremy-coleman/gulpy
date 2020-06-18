@@ -1,0 +1,15 @@
+{
+  "name": "lead",
+  "version": "3.0.0",
+  "description": "Sink your streams.",
+  "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/lead",
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  }
+}

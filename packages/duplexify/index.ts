@@ -1,7 +1,7 @@
-import stream from "readable-stream"
+import * as stream from "stream"
 import eos from "end-of-stream"
-import inherits from "inherits"
-import shift from "stream-shift"
+import { shift } from "stream-shift"
+import { noop, isFunction } from "lodash"
 
 const SIGNAL_FLUSH =
   Buffer.from && Buffer.from !== Uint8Array.from ? Buffer.from([0]) : new Buffer([0])
@@ -28,30 +28,31 @@ const end = (ws, fn) => {
   fn()
 }
 
-const noop = () => {}
-
 const toStreams2 = rs =>
   new stream.Readable({ objectMode: true, highWaterMark: 16 }).wrap(rs)
 
-class Duplexify {
-  constructor(writable, readable, opts) {
-    if (!(this instanceof Duplexify)) return new Duplexify(writable, readable, opts)
-    stream.Duplex.call(this, opts)
+class Duplexify extends stream.Duplex {
+  _writable = null
+  _readable = null
+  _readable2 = null
+  _autoDestroy: boolean
+  _forwardDestroy: boolean
+  _forwardEnd: boolean
 
-    this._writable = null
-    this._readable = null
-    this._readable2 = null
+  _corked = 1 // start corked
+  _ondrain = null
+  _drained = false
+  _forwarding = false
+  _unwrite = null
+  _unread = null
+  _ended = false
+
+  constructor(writable, readable, opts) {
+    super(opts)
 
     this._autoDestroy = !opts || opts.autoDestroy !== false
     this._forwardDestroy = !opts || opts.destroy !== false
     this._forwardEnd = !opts || opts.end !== false
-    this._corked = 1 // start corked
-    this._ondrain = null
-    this._drained = false
-    this._forwarding = false
-    this._unwrite = null
-    this._unread = null
-    this._ended = false
 
     this.destroyed = false
 
@@ -88,13 +89,13 @@ class Duplexify {
     )
 
     const ondrain = () => {
-      const ondrain = self._ondrain
-      self._ondrain = null
+      const ondrain = this._ondrain
+      this._ondrain = null
       if (ondrain) ondrain()
     }
 
     const clear = () => {
-      self._writable.removeListener("drain", ondrain)
+      this._writable.removeListener("drain", ondrain)
       unend()
     }
 
@@ -125,16 +126,16 @@ class Duplexify {
     const unend = eos(readable, { writable: false, readable: true }, destroyer(this))
 
     const onreadable = () => {
-      self._forward()
+      this._forward()
     }
 
     const onend = () => {
-      self.push(null)
+      this.push(null)
     }
 
     const clear = () => {
-      self._readable2.removeListener("readable", onreadable)
-      self._readable2.removeListener("end", onend)
+      this._readable2.removeListener("readable", onreadable)
+      this._readable2.removeListener("end", onend)
       unend()
     }
 
@@ -219,9 +220,9 @@ class Duplexify {
     })
   }
 
-  end(data, enc, cb) {
-    if (typeof data === "function") return this.end(null, null, data)
-    if (typeof enc === "function") return this.end(data, null, enc)
+  end(data, enc?, cb?) {
+    if (isFunction(data)) return this.end(null, null, data)
+    if (isFunction(enc)) return this.end(data, null, enc)
     this._ended = true
     if (data) this.write(data)
     if (!this._writableState.ending) this.write(SIGNAL_FLUSH)
@@ -229,13 +230,15 @@ class Duplexify {
   }
 }
 
-inherits(Duplexify, stream.Duplex)
+function duplexify(writable, readable, opts?) {
+  return new Duplexify(writable, readable, opts)
+}
 
-Duplexify.obj = (writable, readable, opts) => {
+duplexify.obj = (writable, readable, opts) => {
   if (!opts) opts = {}
   opts.objectMode = true
   opts.highWaterMark = 16
   return new Duplexify(writable, readable, opts)
 }
 
-export default Duplexify
+export default duplexify

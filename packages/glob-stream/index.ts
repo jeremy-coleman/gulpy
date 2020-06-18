@@ -1,7 +1,7 @@
 import Combine from "ordered-read-streams"
 import unique from "unique-stream"
 import * as pumpify from "pumpify"
-import isNegatedGlob from "is-negated-glob"
+import isNegatedGlob from "@local/is-negated-glob"
 import GlobStream from "./readable"
 import { isString, isBoolean, isFunction } from "lodash"
 import type * as glob from "glob"

@@ -1,5 +1,5 @@
 {
-  "name": "is-negated-glob",
+  "name": "@local/is-negated-glob",
   "description": "Returns an object with a `negated` boolean and the `!` stripped from negation patterns. Also respects extglobs.",
   "version": "1.0.0",
   "homepage": "https://github.com/jonschlinkert/is-negated-glob",
@@ -40,29 +40,5 @@
     "negative",
     "pattern",
     "test"
-  ],
-  "verb": {
-    "toc": false,
-    "layout": "default",
-    "tasks": [
-      "readme"
-    ],
-    "plugins": [
-      "gulp-format-md"
-    ],
-    "related": {
-      "list": [
-        "is-extglob",
-        "is-glob",
-        "to-absolute-glob"
-      ]
-    },
-    "reflinks": [
-      "verb",
-      "verb-generate-readme"
-    ],
-    "lint": {
-      "reflinks": true
-    }
-  }
+  ]
 }

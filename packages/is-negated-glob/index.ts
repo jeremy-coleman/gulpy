@@ -1,8 +1,8 @@
-"use strict"
+import { isString } from "lodash"
 
 export default function isNegatedGlob(pattern: string) {
-  if (typeof pattern !== "string") {
-    throw new TypeError("expected a string")
+  if (!isString(pattern)) {
+    throw TypeError("expected a string")
   }
 
   const glob = { negated: false, pattern, original: pattern }

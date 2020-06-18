@@ -1,13 +1,13 @@
 import * as fs from "fs"
 import * as path from "path"
-import * as util from "util"
+import { inspect } from "util"
 import { expect } from "chai"
-import cloneable from "cloneable-readable"
+import cloneable from "@local/cloneable-readable"
 import File from "../index"
 
 import from from "from2"
 import concat from "concat-stream"
-import pipe from "pump2"
+import pipe from "@local/pump"
 
 const isCloneable = cloneable.isCloneable
 
@@ -665,9 +665,9 @@ describe("File", () => {
       const file = new File()
       const expectation = "<File >"
       expect(file.inspect()).to.equal(expectation)
-      expect(util.inspect(file)).to.equal(expectation)
-      if (util.inspect.custom) {
-        expect(file[util.inspect.custom]()).to.equal(expectation)
+      expect(inspect(file)).to.equal(expectation)
+      if (inspect.custom) {
+        expect(file[inspect.custom]()).to.equal(expectation)
       }
     })
 
