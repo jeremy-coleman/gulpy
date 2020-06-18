@@ -1,9 +1,5 @@
 "use strict"
 
-function _interopDefault(ex) {
-  return ex && typeof ex === "object" && "default" in ex ? ex["default"] : ex
-}
-
 var assert = require("assert")
 var events = require("events")
 var lodash = require("lodash")
@@ -14,7 +10,6 @@ var glob = require("glob")
 var path = require("path")
 var fs = require("fs")
 var os = require("os")
-var iconv = _interopDefault(require("iconv-lite"))
 var fs$1 = require("fs-extra")
 var chokidar = require("chokidar")
 
@@ -3036,6 +3031,59 @@ class Readable extends stream.PassThrough {
   }
 }
 
+var toEncoding = exports.encode
+var fromEncoding = exports.decode
+function getCodec(encoding) {
+  if (!exports.encodings) exports.encodings = require("../encodings")
+
+  let enc = exports._canonicalizeEncoding(encoding)
+
+  const codecOptions = {}
+
+  while (true) {
+    let codec = exports._codecDataCache[enc]
+    if (codec) return codec
+    const codecDef = exports.encodings[enc]
+
+    switch (typeof codecDef) {
+      case "string":
+        enc = codecDef
+        break
+
+      case "object":
+        for (const key in codecDef) codecOptions[key] = codecDef[key]
+
+        if (!codecOptions.encodingName) codecOptions.encodingName = enc
+        enc = codecDef.type
+        break
+
+      case "function":
+        if (!codecOptions.encodingName) codecOptions.encodingName = enc
+        codec = new codecDef(codecOptions, exports)
+        exports._codecDataCache[codecOptions.encodingName] = codec
+        return codec
+
+      default:
+        throw new Error(`Encoding not recognized: '${encoding}' (searched as: '${enc}')`)
+    }
+  }
+}
+let stream_module
+
+try {
+  stream_module = require("stream")
+} catch (e) {}
+
+if (stream_module && stream_module.Transform) {
+  exports.enableStreamingAPI(stream_module)
+} else {
+  exports.encodeStream = exports.decodeStream = () => {
+    throw new Error(
+      "iconv-lite Streaming API is not enabled. Use iconv.enableStreamingAPI(require('stream')); to enable it."
+    )
+  }
+}
+
 class Codec {
   constructor(codec, encoding) {
     this.codec = void 0
@@ -3124,7 +3172,7 @@ function getDecoder(codec) {
 }
 
 const cache = {}
-function getCodec(encoding) {
+function getCodec$1(encoding) {
   let codec = cache[encoding]
 
   if (!!codec || !encoding || cache.hasOwnProperty(encoding)) {
@@ -3132,17 +3180,17 @@ function getCodec(encoding) {
   }
 
   try {
-    codec = new Codec(iconv.getCodec(encoding), encoding)
+    codec = new Codec(getCodec(encoding), encoding)
   } catch (err) {}
 
   cache[encoding] = codec
   return codec
 }
-getCodec(DEFAULT_ENCODING)
+getCodec$1(DEFAULT_ENCODING)
 
 function streamFile(file, optResolver, onRead) {
   const encoding = optResolver.resolve("encoding", file)
-  const codec = getCodec(encoding)
+  const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
     return onRead(new Error(`Unsupported encoding: ${encoding}`))
@@ -3158,7 +3206,7 @@ function streamFile(file, optResolver, onRead) {
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = contents
           .pipe(codec.decodeStream())
-          .pipe(getCodec(DEFAULT_ENCODING).encodeStream())
+          .pipe(getCodec$1(DEFAULT_ENCODING).encodeStream())
       }
 
       if (removeBOM) {
@@ -3173,7 +3221,7 @@ function streamFile(file, optResolver, onRead) {
 
 function bufferFile(file, optResolver, onRead) {
   const encoding = optResolver.resolve("encoding", file)
-  const codec = getCodec(encoding)
+  const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
     return onRead(new Error(`Unsupported encoding: ${encoding}`))
@@ -3192,7 +3240,7 @@ function bufferFile(file, optResolver, onRead) {
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = codec.decode(contents)
         removeBOM$1 = removeBOM$1 && contents[0] === "\ufeff"
-        contents = getCodec(DEFAULT_ENCODING).encode(contents)
+        contents = getCodec$1(DEFAULT_ENCODING).encode(contents)
       }
 
       if (removeBOM$1) {
@@ -4044,7 +4092,7 @@ function writeStream(file, optResolver, onWritten) {
     append: optResolver.resolve("append", file),
   })
   const encoding = optResolver.resolve("encoding", file)
-  const codec = getCodec(encoding)
+  const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
     return onWritten(new Error(`Unsupported encoding: ${encoding}`))
@@ -4059,7 +4107,7 @@ function writeStream(file, optResolver, onWritten) {
 
   if (encoding && encoding.enc !== DEFAULT_ENCODING) {
     contents = contents
-      .pipe(getCodec(DEFAULT_ENCODING).decodeStream())
+      .pipe(getCodec$1(DEFAULT_ENCODING).decodeStream())
       .pipe(codec.encodeStream())
   }
 
@@ -4118,7 +4166,7 @@ function writeBuffer(file, optResolver, onWritten) {
     append: optResolver.resolve("append", file),
   })
   const encoding = optResolver.resolve("encoding", file)
-  const codec = getCodec(encoding)
+  const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
     return onWritten(new Error(`Unsupported encoding: ${encoding}`))
@@ -4131,7 +4179,7 @@ function writeBuffer(file, optResolver, onWritten) {
   let contents = file.contents
 
   if (encoding && codec.enc !== DEFAULT_ENCODING) {
-    contents = getCodec(DEFAULT_ENCODING).decode(contents)
+    contents = getCodec$1(DEFAULT_ENCODING).decode(contents)
     contents = codec.encode(contents)
   }
 

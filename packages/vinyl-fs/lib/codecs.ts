@@ -1,6 +1,6 @@
 /* eslint-disable new-cap */
 
-import iconv from "iconv-lite"
+import * as iconv from "@local/iconv-lite"
 
 import through from "through2"
 import { DEFAULT_ENCODING } from "./constants"
