@@ -12,7 +12,7 @@ function beforeFirstCall(instance, method, callback) {
 }
 
 export class Readable extends PassThrough {
-  constructor(fn, options) {
+  constructor(fn, options?) {
     super(options)
 
     beforeFirstCall(this, "_read", function () {

@@ -3,9 +3,11 @@ import removeBomStream from "@local/remove-bom-stream"
 import * as lazystream from "@local/lazystream"
 import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
+import { Config } from "../options"
+import { resolveOption } from "../../resolve-option"
 
-function streamFile(file, optResolver, onRead) {
-  const encoding = optResolver.resolve("encoding", file)
+function streamFile(file, options: Pick<Config, "encoding" | "removeBOM">, onRead) {
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec(encoding)
   if (encoding && !codec) {
     return onRead(new Error(`Unsupported encoding: ${encoding}`))
@@ -17,7 +19,7 @@ function streamFile(file, optResolver, onRead) {
     let contents = fs.createReadStream(filePath)
 
     if (encoding) {
-      const removeBOM = codec.bomAware && optResolver.resolve("removeBOM", file)
+      const removeBOM = codec.bomAware && resolveOption(options.removeBOM, file)
 
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = contents

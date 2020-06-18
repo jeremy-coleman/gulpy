@@ -1,4 +1,4 @@
-import expect from "expect"
+import { expect } from "chai"
 import miss from "mississippi"
 import toThrough from "../"
 
@@ -47,7 +47,7 @@ describe("toThrough (buffer mode)", () => {
 
     function assert(err) {
       expect(err).toExist()
-      expect(err.message).toEqual("boom")
+      expect(err.message).to.equal("boom")
       done()
     }
 

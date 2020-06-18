@@ -1,4 +1,4 @@
-import { obj as filter } from "through2-filter"
+import { obj as filter } from "@local/through2-filter"
 import { isString, isFunction } from "lodash"
 
 export default unique

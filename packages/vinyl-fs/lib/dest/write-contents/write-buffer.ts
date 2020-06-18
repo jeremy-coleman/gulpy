@@ -1,14 +1,16 @@
 import * as fo from "../../file-operations"
 import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
+import { resolveOption } from "../../resolve-option"
+import { Config } from "../options"
 
-function writeBuffer(file, optResolver, onWritten) {
+function writeBuffer(file, options: Config, onWritten) {
   const flags = fo.getFlags({
-    overwrite: optResolver.resolve("overwrite", file),
-    append: optResolver.resolve("append", file),
+    overwrite: resolveOption(options.overwrite, file),
+    append: resolveOption(options.append, file),
   })
 
-  const encoding = optResolver.resolve("encoding", file)
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec(encoding)
   if (encoding && !codec) {
     return onWritten(new Error(`Unsupported encoding: ${encoding}`))

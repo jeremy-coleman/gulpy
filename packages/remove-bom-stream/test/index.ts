@@ -1,8 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
-import expect from "expect"
+import { expect } from "chai"
 import miss from "mississippi"
-import isEqual from "buffer-equal"
 import chunker from "stream-chunker"
 import removeBomStream from "../"
 
@@ -16,7 +15,7 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath)
 
     function assert(data) {
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe([fs.createReadStream(filepath), removeBomStream(), concat(assert)], done)
@@ -28,7 +27,7 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath).slice(3)
 
     function assert(data) {
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe([fs.createReadStream(filepath), removeBomStream(), concat(assert)], done)
@@ -40,7 +39,7 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath).slice(3)
 
     function assert(data) {
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe(
@@ -55,9 +54,9 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath).slice(3)
 
     function assert(data) {
-      expect(data.length < 7).toEqual(true)
-      expect(expected.length < 7).toEqual(true)
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.length < 7).to.be.true
+      expect(expected.length < 7).to.be.true
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe([fs.createReadStream(filepath), removeBomStream(), concat(assert)], done)
@@ -69,7 +68,7 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath)
 
     function assert(data) {
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe([fs.createReadStream(filepath), removeBomStream(), concat(assert)], done)
@@ -81,7 +80,7 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath)
 
     function assert(data) {
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe([fs.createReadStream(filepath), removeBomStream(), concat(assert)], done)
@@ -93,7 +92,7 @@ describe("removeBomStream", () => {
     const expected = fs.readFileSync(filepath)
 
     function assert(data) {
-      expect(isEqual(data, expected)).toEqual(true)
+      expect(data.equals(expected)).to.be.true
     }
 
     pipe([fs.createReadStream(filepath), removeBomStream(), concat(assert)], done)

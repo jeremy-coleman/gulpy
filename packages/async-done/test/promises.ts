@@ -25,7 +25,7 @@ describe("promises", () => {
 
   it("should handle a rejected promise", done => {
     asyncDone(failure, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })
@@ -33,7 +33,7 @@ describe("promises", () => {
   it("properly errors when rejected without an error", done => {
     asyncDone(rejectNoError, err => {
       expect(err).to.exist
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })

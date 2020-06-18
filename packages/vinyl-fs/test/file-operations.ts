@@ -369,7 +369,7 @@ describe("getTimesDiff", () => {
 
     const result = getTimesDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -387,7 +387,7 @@ describe("getTimesDiff", () => {
 
     const result = getTimesDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -406,7 +406,7 @@ describe("getTimesDiff", () => {
 
     const result = getTimesDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -514,7 +514,7 @@ describe("getOwnerDiff", () => {
 
     const result = getOwnerDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -531,7 +531,7 @@ describe("getOwnerDiff", () => {
 
     const result = getOwnerDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -642,7 +642,7 @@ describe("getOwnerDiff", () => {
 
     var result = getOwnerDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     var fsStat = {
       uid: -1,
@@ -655,7 +655,7 @@ describe("getOwnerDiff", () => {
 
     var result = getOwnerDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -672,7 +672,7 @@ describe("getOwnerDiff", () => {
 
     var result = getOwnerDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     fsStat = {
       uid: 1000,
@@ -685,7 +685,7 @@ describe("getOwnerDiff", () => {
 
     var result = getOwnerDiff(fsStat, vfsStat)
 
-    expect(result).toEqual(undefined)
+    expect(result).to.be.undefined
 
     done()
   })
@@ -750,7 +750,7 @@ describe("closeFd", () => {
       spy.restore()
 
       expect(spy.calls.length).to.equal(1)
-      expect(err).toEqual(undefined)
+      expect(err).to.be.undefined
 
       done()
     })
@@ -1537,7 +1537,7 @@ describe("createWriteStream", () => {
     let flushCalled = false
 
     const outStream = createWriteStream(outputPath, (fd, cb) => {
-      expect(fd).toBeA("number")
+      expect(fd).to.be.a("number")
       flushCalled = true
       cb()
     })
@@ -1575,7 +1575,7 @@ describe("createWriteStream", () => {
     const badOutputPath = path.join(outputBase, "./non-exist/test.coffee")
 
     function assert(err) {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     }
 
@@ -1587,7 +1587,7 @@ describe("createWriteStream", () => {
     fs.writeFileSync(outputPath, contents)
 
     function assert(err) {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     }
 

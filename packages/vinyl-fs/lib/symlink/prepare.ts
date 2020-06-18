@@ -1,10 +1,15 @@
 import * as path from "path"
 import * as fs from "fs"
 import Vinyl from "vinyl"
-import through from "through2"
+import * as through from "through2"
 import { isFunction } from "lodash"
+import { resolveOption } from "../resolve-option"
+import { Config } from "./options"
 
-function prepareSymlink(folderResolver, optResolver) {
+function prepareSymlink(
+  folderResolver: string | ((file: File) => string),
+  options: Config
+) {
   if (!folderResolver) {
     throw Error("Invalid output folder")
   }
@@ -19,9 +24,9 @@ function prepareSymlink(folderResolver, optResolver) {
       file = new Vinyl(file)
     }
 
-    const cwd = path.resolve(optResolver.resolve("cwd", file))
+    const cwd = path.resolve(resolveOption(options.cwd, file))
 
-    const outFolderPath = folderResolver.resolve("outFolder", file)
+    const outFolderPath = resolveOption(folderResolver, file)
     if (!outFolderPath) {
       return cb(new Error("Invalid output folder"))
     }

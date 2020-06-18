@@ -3,14 +3,16 @@ import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
 import readStream from "../../src/read-contents/read-stream"
 import { isNumber } from "lodash"
+import { resolveOption } from "../../resolve-option"
+import type { Config } from "../options"
 
-function writeStream(file, optResolver, onWritten) {
+function writeStream(file, options: Config, onWritten) {
   const flags = fo.getFlags({
-    overwrite: optResolver.resolve("overwrite", file),
-    append: optResolver.resolve("append", file),
+    overwrite: resolveOption(options.overwrite, file),
+    append: resolveOption(options.append, file),
   })
 
-  const encoding = optResolver.resolve("encoding", file)
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec(encoding)
   if (encoding && !codec) {
     return onWritten(new Error(`Unsupported encoding: ${encoding}`))
@@ -61,17 +63,7 @@ function writeStream(file, optResolver, onWritten) {
     file.contents.removeListener("error", onComplete)
 
     // TODO: this is doing sync stuff & the callback seems unnecessary
-    readStream(file, { resolve }, complete)
-
-    function resolve(key) {
-      if (key === "encoding") {
-        return encoding
-      }
-      if (key === "removeBOM") {
-        return false
-      }
-      throw Error(`Eek! stub resolver doesn't have ${key}`)
-    }
+    readStream(file, { encoding, removeBOM: false }, complete)
 
     function complete() {
       if (!isNumber(fd)) {

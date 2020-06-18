@@ -1,18 +1,19 @@
-import * as os from "os"
 import * as path from "path"
 import * as fo from "../../file-operations"
+import { Config } from "../options"
+import { resolveOption } from "../../resolve-option"
 
 const isWindows = process.platform === "win32"
 
-function writeSymbolicLink(file, optResolver, onWritten) {
+function writeSymbolicLink(file, options: Config, onWritten) {
   if (!file.symlink) {
     return onWritten(new Error("Missing symlink property on symbolic vinyl"))
   }
 
-  const isRelative = optResolver.resolve("relativeSymlinks", file)
+  const isRelative = resolveOption(options.relativeSymlinks, file)
   const flags = fo.getFlags({
-    overwrite: optResolver.resolve("overwrite", file),
-    append: optResolver.resolve("append", file),
+    overwrite: resolveOption(options.overwrite, file),
+    append: resolveOption(options.append, file),
   })
 
   if (!isWindows) {
@@ -40,7 +41,7 @@ function writeSymbolicLink(file, optResolver, onWritten) {
     //    a symlink as the JVM and Node return false for isSymlink.
 
     // This function is Windows only, so we don't need to check again
-    const useJunctions = optResolver.resolve("useJunctions", file)
+    const useJunctions = resolveOption(options.useJunctions, file)
 
     const dirType = useJunctions ? "junction" : "dir"
     // Dangling links are always 'file'

@@ -28,7 +28,7 @@ describe("child processes", () => {
 
   it("should handle failing exec", done => {
     asyncDone(execFail, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })
@@ -42,7 +42,7 @@ describe("child processes", () => {
 
   it("should handle failing spawn", done => {
     asyncDone(spawnFail, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })

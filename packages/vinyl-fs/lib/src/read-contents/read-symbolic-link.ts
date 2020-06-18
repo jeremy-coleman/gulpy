@@ -1,6 +1,6 @@
 import * as fs from "fs"
 
-function readLink(file, optResolver, onRead) {
+function readLink(file, onRead) {
   fs.readlink(file.path, onReadlink)
 
   function onReadlink(readErr, target) {

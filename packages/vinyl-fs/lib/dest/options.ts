@@ -1,45 +1,36 @@
 import { DEFAULT_ENCODING } from "../constants"
+import type { File } from "vinyl"
 
-const config = {
-  cwd: {
-    type: "string",
-    default: process.cwd,
-  },
-  mode: {
-    type: "number",
-    default({ stat }) {
-      return stat ? stat.mode : null
-    },
-  },
-  dirMode: {
-    type: "number",
-  },
-  overwrite: {
-    type: "boolean",
-    default: true,
-  },
-  append: {
-    type: "boolean",
-    default: false,
-  },
-  encoding: {
-    type: ["string", "boolean"],
-    default: DEFAULT_ENCODING,
-  },
-  sourcemaps: {
-    type: ["string", "boolean"],
-    default: false,
-  },
+interface PartialConfig {
+  cwd?: string | (() => string)
+  mode?: number | ((file: File) => null | number)
+  dirMode: number
+  overwrite?: boolean
+  append?: boolean
+  encoding?: string | boolean
+  sourcemaps?: string | boolean
   // Symlink options
-  relativeSymlinks: {
-    type: "boolean",
-    default: false,
-  },
+  relativeSymlinks?: boolean
   // This option is ignored on non-Windows platforms
-  useJunctions: {
-    type: "boolean",
-    default: true,
-  },
+  useJunctions?: boolean
 }
 
-export default config
+export type Config = Required<PartialConfig>
+
+export function resolve(config: PartialConfig): Config {
+  return {
+    cwd: process.cwd,
+    mode({ stat }) {
+      return stat ? stat.mode : null
+    },
+    overwrite: true,
+    append: false,
+    encoding: DEFAULT_ENCODING,
+    sourcemaps: false,
+    // Symlink options
+    relativeSymlinks: false,
+    // This option is ignored on non-Windows platforms
+    useJunctions: true,
+    ...config,
+  }
+}

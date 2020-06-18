@@ -58,7 +58,7 @@ describe(".src() with symlinks", () => {
       // The path should be the symlink itself
       expect(files[0].path).toEqual(symlinkDirpath)
       // But the contents should be null
-      expect(files[0].contents).toEqual(null)
+      expect(files[0].contents).to.be.null
       // And the stats should have been updated
       expect(files[0].stat.isSymbolicLink()).to.be.false
       expect(files[0].stat.isDirectory()).to.be.true
@@ -73,7 +73,7 @@ describe(".src() with symlinks", () => {
       // The path should be the symlink itself
       expect(files[0].path).toEqual(symlinkMultiDirpathSecond)
       // But the contents should be null
-      expect(files[0].contents).toEqual(null)
+      expect(files[0].contents).to.be.null
       // And the stats should have been updated
       expect(files[0].stat.isSymbolicLink()).to.be.false
       expect(files[0].stat.isDirectory()).to.be.true

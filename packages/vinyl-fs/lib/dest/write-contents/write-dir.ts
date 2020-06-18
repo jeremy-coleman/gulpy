@@ -1,7 +1,7 @@
 import * as fs from "fs-extra"
 import * as fo from "../../file-operations"
 
-function writeDir(file, optResolver, onWritten) {
+function writeDir(file, onWritten) {
   ;(fs as any).mkdirp(file.path, file.stat.mode).then(onMkdirp)
 
   function onMkdirp(mkdirpErr) {

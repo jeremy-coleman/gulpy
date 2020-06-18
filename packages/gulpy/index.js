@@ -991,6 +991,16 @@ const ctor = through2((options, transform, flush) => {
   if (flush) Through2.prototype._flush = flush
   return Through2
 })
+const obj = through2((options, transform, flush) => {
+  const t2 = new DestroyableTransform({
+    objectMode: true,
+    highWaterMark: 16,
+    ...options,
+  })
+  t2._transform = transform
+  if (flush) t2._flush = flush
+  return t2
+})
 
 function ctor$1(fn, options) {
   const Filter = ctor(options, function (chunk, _encoding, callback) {
@@ -1010,7 +1020,7 @@ function ctor$1(fn, options) {
 function make(fn, options) {
   return ctor$1(fn, options)()
 }
-function obj(fn, options) {
+function obj$1(fn, options) {
   return make(fn, {
     objectMode: true,
     highWaterMark: 16,
@@ -1024,7 +1034,7 @@ function unique(by, keyStore = new Set()) {
     : lodash.isFunction(by)
     ? by
     : JSON.stringify
-  return obj(data => {
+  return obj$1(data => {
     const key = keyfn(data)
 
     if (keyStore.has(key)) {
@@ -1352,7 +1362,7 @@ var pumpify = define({
   autoDestroy: false,
   destroy: false,
 })
-const obj$1 = define({
+const obj$2 = define({
   autoDestroy: false,
   destroy: false,
   objectMode: true,
@@ -1490,17 +1500,22 @@ function removeTrailingSeparator(path) {
   return path.replace(/(?<=.)\/+$/, "")
 }
 
-var toAbsoluteGlob = (glob, options) => {
-  const opts = options || {}
-  let cwd = path.resolve(opts.cwd ? opts.cwd : process.cwd())
-  cwd = unixify(cwd)
-  let rootDir = opts.root
+function toAbsoluteGlob(glob, opts) {
+  var _opts$cwd
+
+  let cwd = path.resolve(
+    (_opts$cwd = opts === null || opts === void 0 ? void 0 : opts.cwd) != null
+      ? _opts$cwd
+      : process.cwd()
+  )
+  cwd = unix(cwd)
+  let rootDir = opts === null || opts === void 0 ? void 0 : opts.root
 
   if (rootDir) {
-    rootDir = unixify(rootDir)
+    rootDir = unix(rootDir)
 
     if (process.platform === "win32" || !path.isAbsolute(rootDir)) {
-      rootDir = unixify(path.resolve(rootDir))
+      rootDir = unix(path.resolve(rootDir))
     }
   }
 
@@ -1529,16 +1544,16 @@ var toAbsoluteGlob = (glob, options) => {
   return ing.negated ? `!${glob}` : glob
 }
 
-function unixify(filepath) {
+function unix(filepath) {
   return filepath.replace(/\\/g, "/")
 }
 
 function join(dir, glob) {
-  if (dir.charAt(dir.length - 1) === "/") {
+  if (lodash.last(dir) === "/") {
     dir = dir.slice(0, -1)
   }
 
-  if (glob.charAt(0) === "/") {
+  if (glob[0] === "/") {
     glob = glob.slice(1)
   }
 
@@ -1695,7 +1710,7 @@ function globStream(globs, opt) {
   const streams = positives.map(streamFromPositive)
   const aggregate = new OrderedStreams(streams)
   const uniqueStream = unique(ourOpt.uniqueBy)
-  return obj$1(aggregate, uniqueStream)
+  return obj$2(aggregate, uniqueStream)
 
   function streamFromPositive({ index, glob }) {
     const negativeGlobs = negatives
@@ -1764,234 +1779,29 @@ function toThrough(readable) {
   return wrapper
 }
 
-const types = ["object", "number", "string", "symbol", "boolean", "date", "function"]
-function normalize(coercer, value) {
-  if (lodash.isFunction(value)) {
-    if (coercer === "function") {
-      return value
-    }
-
-    value = value.apply(this, slice(arguments, 2))
-  }
-
-  return coerce(this, coercer, value)
-}
-
-function coerce(ctx, coercer, value) {
-  if (lodash.isString(coercer)) {
-    if (coerce[coercer]) {
-      return coerce[coercer].call(ctx, value)
-    }
-
-    return typeOf(coercer, value)
-  }
-
-  if (lodash.isFunction(coercer)) {
-    return coercer.call(ctx, value)
-  }
-
-  let result
-  coercer.some(coercer => {
-    result = coerce(ctx, coercer, value)
-    return result != null
-  })
-  return result
-}
-
-coerce.string = value => {
-  var _value
-
-  if (
-    lodash.isFunction(
-      (_value = value) === null || _value === void 0 ? void 0 : _value.toString
-    )
-  ) {
-    value = value.toString()
-  }
-
-  return typeOf("string", primitive(value))
-}
-
-coerce.number = value => typeOf("number", primitive(value))
-
-coerce.boolean = value => typeOf("boolean", primitive(value))
-
-coerce.date = value => {
-  value = primitive(value)
-
-  if (lodash.isNumber(value) && !isNaN(value) && isFinite(value)) {
-    return new Date(value)
-  }
-}
-
-function typeOf(type, value) {
-  if (typeof value === type) {
-    return value
-  }
-}
-
-function primitive(value) {
-  var _value2
-
-  if (
-    lodash.isFunction(
-      (_value2 = value) === null || _value2 === void 0 ? void 0 : _value2.valueOf
-    )
-  ) {
-    value = value.valueOf()
-  }
-
-  return value
-}
-
-function slice(value, from) {
-  return Array.prototype.slice.call(value, from)
-}
-
-types.forEach(type => {
-  const typeArg = [type]
-
-  normalize[type] = function (...args) {
-    return normalize.apply(this, typeArg.concat(args))
-  }
-})
-
-const slice$1 = Array.prototype.slice
-
-function createResolver(config = {}, options = {}) {
-  const resolver = {
-    resolve,
-  }
-  const constants = {}
-
-  function resolveConstant(key) {
-    if (constants.hasOwnProperty(key)) {
-      return constants[key]
-    }
-
-    const definition = config[key]
-
-    if (!definition) {
-      return
-    }
-
-    let option = options[key]
-
-    if (option != null) {
-      if (lodash.isFunction(option)) {
-        return
-      }
-
-      option = normalize.call(resolver, definition.type, option)
-
-      if (option != null) {
-        constants[key] = option
-        return option
-      }
-    }
-
-    const fallback = definition.default
-
-    if (option == null && !lodash.isFunction(fallback)) {
-      constants[key] = fallback
-      return fallback
-    }
-  }
-
-  const stack = []
-
-  function resolve(key) {
-    let option = resolveConstant(key)
-
-    if (option != null) {
-      return option
-    }
-
-    const definition = config[key]
-
-    if (!definition) {
-      return
-    }
-
-    if (stack.includes(key)) {
-      throw Error("Recursive resolution denied.")
-    }
-
-    option = options[key]
-    const fallback = definition.default
-    const appliedArgs = slice$1.call(arguments, 1)
-    const args = [definition.type, option].concat(appliedArgs)
-
-    function toResolve() {
-      stack.push(key)
-      let option = normalize.apply(resolver, args)
-
-      if (option == null) {
-        option = fallback
-
-        if (lodash.isFunction(option)) {
-          option = option.apply(resolver, appliedArgs)
-        }
-      }
-
-      return option
-    }
-
-    function onResolve() {
-      stack.pop()
-    }
-
-    return tryResolve(toResolve, onResolve)
-  }
-
-  return resolver
-}
-
-function tryResolve(toResolve, onResolve) {
-  try {
-    return toResolve()
-  } finally {
-    onResolve()
-  }
-}
-
 const MASK_MODE = parseInt("7777", 8)
 const DEFAULT_FILE_MODE = parseInt("0666", 8)
 const DEFAULT_ENCODING = "utf8"
 
-const config = {
-  buffer: {
-    type: "boolean",
-    default: true,
-  },
-  read: {
-    type: "boolean",
-    default: true,
-  },
-  since: {
-    type: "date",
-  },
-  removeBOM: {
-    type: "boolean",
-    default: true,
-  },
-  encoding: {
-    type: ["string", "boolean"],
-    default: DEFAULT_ENCODING,
-  },
-  sourcemaps: {
-    type: "boolean",
-    default: false,
-  },
-  resolveSymlinks: {
-    type: "boolean",
-    default: true,
-  },
+function resolve(config) {
+  return {
+    buffer: true,
+    read: true,
+    removeBOM: true,
+    encoding: DEFAULT_ENCODING,
+    sourcemaps: false,
+    resolveSymlinks: true,
+    ...config,
+  }
 }
 
-function prepareRead(optResolver) {
-  function normalize(file, enc, callback) {
-    const since = optResolver.resolve("since", file)
+function resolveOption(provider, arg) {
+  return lodash.isFunction(provider) ? provider(arg) : provider
+}
+
+function prepareRead(options) {
+  function normalize(file, _enc, callback) {
+    const since = resolveOption(options.since, file)
 
     if (file.stat && file.stat.mtime <= since) {
       return callback()
@@ -2000,7 +1810,7 @@ function prepareRead(optResolver) {
     return callback(null, file)
   }
 
-  return main.obj(normalize)
+  return obj(normalize)
 }
 
 class Cloneable extends stream.PassThrough {
@@ -2161,7 +1971,7 @@ function isStream(stream) {
   return true
 }
 
-function normalize$1(str) {
+function normalize(str) {
   return str === "" ? str : path.normalize(str)
 }
 
@@ -2348,7 +2158,7 @@ class File {
       throw Error("cwd must be a non-empty string.")
     }
 
-    this._cwd = removeTrailingSeparator(normalize$1(cwd))
+    this._cwd = removeTrailingSeparator(normalize(cwd))
   }
 
   get base() {
@@ -2365,7 +2175,7 @@ class File {
       throw Error("base must be a non-empty string, or null/undefined.")
     }
 
-    base = removeTrailingSeparator(normalize$1(base))
+    base = removeTrailingSeparator(normalize(base))
 
     if (base !== this._cwd) {
       this._base = base
@@ -2461,7 +2271,7 @@ class File {
       throw Error("path should be a string.")
     }
 
-    path = removeTrailingSeparator(normalize$1(path))
+    path = removeTrailingSeparator(normalize(path))
 
     if (path && path !== this.path) {
       this.history.push(path)
@@ -2477,7 +2287,7 @@ class File {
       throw Error("symlink should be a string")
     }
 
-    this._symlink = removeTrailingSeparator(normalize$1(symlink))
+    this._symlink = removeTrailingSeparator(normalize(symlink))
   }
 
   static isCustomProp(key) {
@@ -2944,9 +2754,9 @@ var sourcemap = {
   write,
 }
 
-function sourcemapStream(optResolver) {
+function sourcemapStream(options) {
   function addSourcemap(file, enc, callback) {
-    const srcMap = optResolver.resolve("sourcemaps", file)
+    const srcMap = resolveOption(options.sourcemaps, file)
 
     if (!srcMap) {
       return callback(null, file)
@@ -2963,11 +2773,7 @@ function sourcemapStream(optResolver) {
     }
   }
 
-  return main.obj(addSourcemap)
-}
-
-function readDir(file, optResolver, onRead) {
-  onRead()
+  return obj(addSourcemap)
 }
 
 function removeBomStream() {
@@ -3223,8 +3029,8 @@ function getCodec$1(encoding) {
 }
 getCodec$1(DEFAULT_ENCODING)
 
-function streamFile(file, optResolver, onRead) {
-  const encoding = optResolver.resolve("encoding", file)
+function streamFile(file, options, onRead) {
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
@@ -3236,7 +3042,7 @@ function streamFile(file, optResolver, onRead) {
     let contents = fs.createReadStream(filePath)
 
     if (encoding) {
-      const removeBOM = codec.bomAware && optResolver.resolve("removeBOM", file)
+      const removeBOM = codec.bomAware && resolveOption(options.removeBOM, file)
 
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = contents
@@ -3254,8 +3060,8 @@ function streamFile(file, optResolver, onRead) {
   onRead()
 }
 
-function bufferFile(file, optResolver, onRead) {
-  const encoding = optResolver.resolve("encoding", file)
+function bufferFile(file, options, onRead) {
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
@@ -3270,7 +3076,7 @@ function bufferFile(file, optResolver, onRead) {
     }
 
     if (encoding) {
-      let removeBOM$1 = codec.bomAware && optResolver.resolve("removeBOM", file)
+      let removeBOM$1 = codec.bomAware && resolveOption(options.removeBOM, file)
 
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = codec.decode(contents)
@@ -3288,7 +3094,7 @@ function bufferFile(file, optResolver, onRead) {
   }
 }
 
-function readLink(file, optResolver, onRead) {
+function readLink(file, onRead) {
   fs.readlink(file.path, onReadlink)
 
   function onReadlink(readErr, target) {
@@ -3301,29 +3107,29 @@ function readLink(file, optResolver, onRead) {
   }
 }
 
-function readContents(optResolver) {
+function readContents(options) {
   function readFile(file, enc, callback) {
-    const read = optResolver.resolve("read", file)
+    const read = resolveOption(options.read, file)
 
     if (!read) {
       return callback(null, file)
     }
 
     if (file.isDirectory()) {
-      return readDir(file, optResolver, onRead)
+      return onRead(null)
     }
 
     if (file.stat && file.stat.isSymbolicLink()) {
-      return readLink(file, optResolver, onRead)
+      return readLink(file, onRead)
     }
 
-    const buffer = optResolver.resolve("buffer", file)
+    const buffer = resolveOption(options.buffer, file)
 
     if (buffer) {
-      return bufferFile(file, optResolver, onRead)
+      return bufferFile(file, options, onRead)
     }
 
-    return streamFile(file, optResolver, onRead)
+    return streamFile(file, options, onRead)
 
     function onRead(readErr) {
       if (readErr) {
@@ -3334,7 +3140,7 @@ function readContents(optResolver) {
     }
   }
 
-  return main.obj(readFile)
+  return obj(readFile)
 }
 
 const APPEND_MODE_REGEXP = /a/
@@ -3779,7 +3585,7 @@ function closeOnOpen() {
   this.close()
 }
 
-function resolveSymlinks(optResolver) {
+function resolveSymlinks(options) {
   function resolveFile(file, _enc, callback) {
     reflectLinkStat(file.path, file, onReflect)
 
@@ -3792,7 +3598,7 @@ function resolveSymlinks(optResolver) {
         return callback(null, file)
       }
 
-      const resolveSymlinks = optResolver.resolve("resolveSymlinks", file)
+      const resolveSymlinks = resolveOption(options.resolveSymlinks, file)
 
       if (!resolveSymlinks) {
         return callback(null, file)
@@ -3802,7 +3608,7 @@ function resolveSymlinks(optResolver) {
     }
   }
 
-  return main.obj(resolveFile)
+  return obj(resolveFile)
 }
 
 function isValidGlob(glob) {
@@ -3810,19 +3616,19 @@ function isValidGlob(glob) {
 }
 
 function src(glob, opt) {
-  const optResolver = createResolver(config, opt)
+  const options = resolve(opt)
 
   if (!isValidGlob(glob)) {
     throw Error(`Invalid glob argument: ${glob}`)
   }
 
   const streams = [
-    globStream(glob, opt),
+    globStream(glob, options),
     wrapVinyl(),
-    resolveSymlinks(optResolver),
-    prepareRead(optResolver),
-    readContents(optResolver),
-    sourcemapStream(optResolver),
+    resolveSymlinks(options),
+    prepareRead(options),
+    readContents(options),
+    sourcemapStream(options),
   ]
   const outputStream = pumpify.obj(streams)
   return toThrough(outputStream)
@@ -3872,7 +3678,6 @@ function sink(stream$1) {
 }
 
 const MASK_MODE$1 = parseInt("7777", 8)
-
 function mkdirp(dirpath, mode, callback) {
   if (lodash.isFunction(mode)) {
     callback = mode
@@ -3971,49 +3776,31 @@ function mkdirpStream(resolver) {
   })
 }
 
-const config$1 = {
-  cwd: {
-    type: "string",
-    default: process.cwd,
-  },
-  mode: {
-    type: "number",
+var mkdirpStream$1 = /*#__PURE__*/ Object.freeze({
+  __proto__: null,
+  default: mkdirpStream,
+})
 
-    default({ stat }) {
+function resolve$1(config) {
+  return {
+    cwd: process.cwd,
+
+    mode({ stat }) {
       return stat ? stat.mode : null
     },
-  },
-  dirMode: {
-    type: "number",
-  },
-  overwrite: {
-    type: "boolean",
-    default: true,
-  },
-  append: {
-    type: "boolean",
-    default: false,
-  },
-  encoding: {
-    type: ["string", "boolean"],
-    default: DEFAULT_ENCODING,
-  },
-  sourcemaps: {
-    type: ["string", "boolean"],
-    default: false,
-  },
-  relativeSymlinks: {
-    type: "boolean",
-    default: false,
-  },
-  useJunctions: {
-    type: "boolean",
-    default: true,
-  },
+
+    overwrite: true,
+    append: false,
+    encoding: DEFAULT_ENCODING,
+    sourcemaps: false,
+    relativeSymlinks: false,
+    useJunctions: true,
+    ...config,
+  }
 }
 
-function prepareWrite(folderResolver, optResolver) {
-  if (!folderResolver) {
+function prepareWrite({ outFolder }, options) {
+  if (!outFolder) {
     throw Error("Invalid output folder")
   }
 
@@ -4026,13 +3813,13 @@ function prepareWrite(folderResolver, optResolver) {
       file = new File(file)
     }
 
-    const outFolderPath = folderResolver.resolve("outFolder", file)
+    const outFolderPath = resolveOption(outFolder, file)
 
     if (!outFolderPath) {
       return cb(new Error("Invalid output folder"))
     }
 
-    const cwd = path.resolve(optResolver.resolve("cwd", file))
+    const cwd = path.resolve(resolveOption(options.cwd, file))
     const basePath = path.resolve(cwd, outFolderPath)
     const writePath = path.resolve(basePath, file.relative)
     file.cwd = cwd
@@ -4040,7 +3827,7 @@ function prepareWrite(folderResolver, optResolver) {
     file.path = writePath
 
     if (!file.isSymbolic()) {
-      const mode = optResolver.resolve("mode", file)
+      const mode = resolveOption(options.mode, file)
       file.stat = file.stat || new fs.Stats()
       file.stat.mode = mode
     }
@@ -4048,40 +3835,40 @@ function prepareWrite(folderResolver, optResolver) {
     cb(null, file)
   }
 
-  return main.obj(normalize)
+  return obj(normalize)
 }
 
-function sourcemapStream$1(optResolver) {
+function sourcemapStream$1(options) {
   function saveSourcemap(file, enc, callback) {
-    const self = this
-    const srcMap = optResolver.resolve("sourcemaps", file)
+    const srcMap = resolveOption(options.sourcemaps, file)
 
     if (!srcMap) {
       return callback(null, file)
     }
 
     const srcMapLocation = lodash.isString(srcMap) ? srcMap : undefined
-    sourcemap.write(file, srcMapLocation, onWrite)
 
-    function onWrite(sourcemapErr, updatedFile, sourcemapFile) {
+    const onWrite = (sourcemapErr, updatedFile, sourcemapFile) => {
       if (sourcemapErr) {
         return callback(sourcemapErr)
       }
 
-      self.push(updatedFile)
+      this.push(updatedFile)
 
       if (sourcemapFile) {
-        self.push(sourcemapFile)
+        this.push(sourcemapFile)
       }
 
       callback()
     }
+
+    sourcemap.write(file, srcMapLocation, onWrite)
   }
 
-  return main.obj(saveSourcemap)
+  return obj(saveSourcemap)
 }
 
-function writeDir(file, optResolver, onWritten) {
+function writeDir(file, onWritten) {
   fs$1.mkdirp(file.path, file.stat.mode).then(onMkdirp)
 
   function onMkdirp(mkdirpErr) {
@@ -4121,12 +3908,12 @@ function isInaccessible(err) {
   return false
 }
 
-function writeStream(file, optResolver, onWritten) {
+function writeStream(file, options, onWritten) {
   const flags = getFlags({
-    overwrite: optResolver.resolve("overwrite", file),
-    append: optResolver.resolve("append", file),
+    overwrite: resolveOption(options.overwrite, file),
+    append: resolveOption(options.append, file),
   })
-  const encoding = optResolver.resolve("encoding", file)
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
@@ -4168,22 +3955,11 @@ function writeStream(file, optResolver, onWritten) {
     streamFile(
       file,
       {
-        resolve,
+        encoding,
+        removeBOM: false,
       },
       complete
     )
-
-    function resolve(key) {
-      if (key === "encoding") {
-        return encoding
-      }
-
-      if (key === "removeBOM") {
-        return false
-      }
-
-      throw Error(`Eek! stub resolver doesn't have ${key}`)
-    }
 
     function complete() {
       if (!lodash.isNumber(fd)) {
@@ -4195,12 +3971,12 @@ function writeStream(file, optResolver, onWritten) {
   }
 }
 
-function writeBuffer(file, optResolver, onWritten) {
+function writeBuffer(file, options, onWritten) {
   const flags = getFlags({
-    overwrite: optResolver.resolve("overwrite", file),
-    append: optResolver.resolve("append", file),
+    overwrite: resolveOption(options.overwrite, file),
+    append: resolveOption(options.append, file),
   })
-  const encoding = optResolver.resolve("encoding", file)
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec$1(encoding)
 
   if (encoding && !codec) {
@@ -4235,15 +4011,15 @@ function writeBuffer(file, optResolver, onWritten) {
 
 const isWindows = process.platform === "win32"
 
-function writeSymbolicLink(file, optResolver, onWritten) {
+function writeSymbolicLink(file, options, onWritten) {
   if (!file.symlink) {
     return onWritten(new Error("Missing symlink property on symbolic vinyl"))
   }
 
-  const isRelative = optResolver.resolve("relativeSymlinks", file)
+  const isRelative = resolveOption(options.relativeSymlinks, file)
   const flags = getFlags({
-    overwrite: optResolver.resolve("overwrite", file),
-    append: optResolver.resolve("append", file),
+    overwrite: resolveOption(options.overwrite, file),
+    append: resolveOption(options.append, file),
   })
 
   if (!isWindows) {
@@ -4257,7 +4033,7 @@ function writeSymbolicLink(file, optResolver, onWritten) {
       return onWritten(statErr)
     }
 
-    const useJunctions = optResolver.resolve("useJunctions", file)
+    const useJunctions = resolveOption(options.useJunctions, file)
     const dirType = useJunctions ? "junction" : "dir"
     const type = !statErr && file.isDirectory() ? dirType : "file"
     createLinkWithType(type)
@@ -4284,32 +4060,32 @@ function writeSymbolicLink(file, optResolver, onWritten) {
   }
 }
 
-function writeContents(optResolver) {
+function writeContents(options) {
   function writeFile(file, enc, callback) {
     if (file.isSymbolic()) {
-      return writeSymbolicLink(file, optResolver, onWritten)
+      return writeSymbolicLink(file, options, onWritten)
     }
 
     if (file.isDirectory()) {
-      return writeDir(file, optResolver, onWritten)
+      return writeDir(file, onWritten)
     }
 
     if (file.isStream()) {
-      return writeStream(file, optResolver, onWritten)
+      return writeStream(file, options, onWritten)
     }
 
     if (file.isBuffer()) {
-      return writeBuffer(file, optResolver, onWritten)
+      return writeBuffer(file, options, onWritten)
     }
 
     if (file.isNull()) {
-      return onWritten()
+      return onWritten(null)
     }
 
     function onWritten(writeErr) {
       const flags = getFlags({
-        overwrite: optResolver.resolve("overwrite", file),
-        append: optResolver.resolve("append", file),
+        overwrite: resolveOption(options.overwrite, file),
+        append: resolveOption(options.append, file),
       })
 
       if (isFatalOverwriteError(writeErr, flags)) {
@@ -4320,14 +4096,9 @@ function writeContents(optResolver) {
     }
   }
 
-  return main.obj(writeFile)
+  return obj(writeFile)
 }
 
-const folderConfig = {
-  outFolder: {
-    type: "string",
-  },
-}
 function dest(outFolder, opt) {
   if (!outFolder) {
     throw Error(
@@ -4335,48 +4106,38 @@ function dest(outFolder, opt) {
     )
   }
 
-  const optResolver = createResolver(config$1, opt)
-  const folderResolver = createResolver(folderConfig, {
-    outFolder,
-  })
+  const options = resolve$1(opt)
 
   function dirpath(file, callback) {
-    const dirMode = optResolver.resolve("dirMode", file)
+    const dirMode = resolveOption(options.dirMode, file)
     callback(null, file.dirname, dirMode)
   }
 
-  const saveStream = obj$1(
-    prepareWrite(folderResolver, optResolver),
-    sourcemapStream$1(optResolver),
-    mkdirpStream.obj(dirpath),
-    writeContents(optResolver)
+  const saveStream = obj$2(
+    prepareWrite(
+      {
+        outFolder,
+      },
+      options
+    ),
+    sourcemapStream$1(options),
+    undefined(dirpath),
+    writeContents(options)
   )
   return sink(saveStream)
 }
 
-const config$2 = {
-  cwd: {
-    type: "string",
-    default: process.cwd,
-  },
-  dirMode: {
-    type: "number",
-  },
-  overwrite: {
-    type: "boolean",
-    default: true,
-  },
-  relativeSymlinks: {
-    type: "boolean",
-    default: false,
-  },
-  useJunctions: {
-    type: "boolean",
-    default: true,
-  },
+function resolve$2(c) {
+  return {
+    cwd: process.cwd,
+    overwrite: true,
+    relativeSymlinks: false,
+    useJunctions: true,
+    ...c,
+  }
 }
 
-function prepareSymlink(folderResolver, optResolver) {
+function prepareSymlink(folderResolver, options) {
   if (!folderResolver) {
     throw Error("Invalid output folder")
   }
@@ -4390,8 +4151,8 @@ function prepareSymlink(folderResolver, optResolver) {
       file = new File(file)
     }
 
-    const cwd = path.resolve(optResolver.resolve("cwd", file))
-    const outFolderPath = folderResolver.resolve("outFolder", file)
+    const cwd = path.resolve(resolveOption(options.cwd, file))
+    const outFolderPath = resolveOption(folderResolver, file)
 
     if (!outFolderPath) {
       return cb(new Error("Invalid output folder"))
@@ -4408,16 +4169,16 @@ function prepareSymlink(folderResolver, optResolver) {
     cb(null, file)
   }
 
-  return main.obj(normalize)
+  return obj(normalize)
 }
 
 const isWindows$1 = process.platform === "win32"
 
-function linkStream(optResolver) {
+function linkStream(options) {
   function linkFile(file, _enc, callback) {
-    const isRelative = optResolver.resolve("relativeSymlinks", file)
+    const isRelative = resolveOption(options.relativeSymlinks, file)
     const flags = getFlags({
-      overwrite: optResolver.resolve("overwrite", file),
+      overwrite: resolveOption(options.overwrite, file),
       append: false,
     })
 
@@ -4432,7 +4193,7 @@ function linkStream(optResolver) {
         return callback(statErr)
       }
 
-      const useJunctions = optResolver.resolve("useJunctions", file)
+      const useJunctions = resolveOption(options.useJunctions, file)
       const dirType = useJunctions ? "junction" : "dir"
       const type = !statErr && file.isDirectory() ? dirType : "file"
       createLinkWithType(type)
@@ -4467,34 +4228,26 @@ function linkStream(optResolver) {
     }
   }
 
-  return main.obj(linkFile)
+  return obj(linkFile)
 }
 
-const folderConfig$1 = {
-  outFolder: {
-    type: "string",
-  },
-}
 function symlink$1(outFolder, opt) {
   if (!outFolder) {
     throw Error(
-      "Invalid symlink() folder argument. Please specify a non-empty string or a function."
+      "Invalid symlink() folder argument.\n Please specify a non-empty string or a function."
     )
   }
 
-  const optResolver = createResolver(config$2, opt)
-  const folderResolver = createResolver(folderConfig$1, {
-    outFolder,
-  })
+  const optResolver = resolve$2(opt)
 
   function dirpath(file, callback) {
-    const dirMode = optResolver.resolve("dirMode", file)
+    const dirMode = resolveOption(optResolver.dirMode, file)
     callback(null, file.dirname, dirMode)
   }
 
-  const stream = pumpify.obj(
-    prepareSymlink(folderResolver, optResolver),
-    mkdirpStream.obj(dirpath),
+  const stream = obj$2(
+    prepareSymlink(outFolder, optResolver),
+    undefined(dirpath),
     linkStream(optResolver)
   )
   return sink(stream)
@@ -6155,6 +5908,19 @@ function watch(glob, options, cb) {
 class Gulp extends Undertaker {
   constructor() {
     super()
+
+    this.src = (globs, options) => {
+      return src(globs, options)
+    }
+
+    this.dest = (globs, options) => {
+      return dest(globs, options)
+    }
+
+    this.symlink = (folder, options) => {
+      return symlink$1(folder, options)
+    }
+
     this.Gulp = Gulp
     this.watch = this.watch.bind(this)
     this.task = this.task.bind(this)
@@ -6163,9 +5929,6 @@ class Gulp extends Undertaker {
     this.registry = this.registry.bind(this)
     this.tree = this.tree.bind(this)
     this.lastRun = this.lastRun.bind(this)
-    this.src = src.bind(this)
-    this.dest = dest.bind(this)
-    this.symlink = symlink$1.bind(this)
   }
 
   watch(glob, opt, task) {

@@ -1,14 +1,16 @@
 import * as path from "path"
-import through from "through2"
+import * as through from "through2"
 import * as fo from "../file-operations"
+import { resolveOption } from "../resolve-option"
+import type { Config } from "./options"
 
 const isWindows = process.platform === "win32"
 
-function linkStream(optResolver) {
+function linkStream(options: Config) {
   function linkFile(file, _enc, callback) {
-    const isRelative = optResolver.resolve("relativeSymlinks", file)
+    const isRelative = resolveOption(options.relativeSymlinks, file)
     const flags = fo.getFlags({
-      overwrite: optResolver.resolve("overwrite", file),
+      overwrite: resolveOption(options.overwrite, file),
       append: false,
     })
 
@@ -39,7 +41,7 @@ function linkStream(optResolver) {
       //    a symlink as the JVM and Node return false for isSymlink.
 
       // This function is Windows only, so we don't need to check again
-      const useJunctions = optResolver.resolve("useJunctions", file)
+      const useJunctions = resolveOption(options.useJunctions, file)
 
       const dirType = useJunctions ? "junction" : "dir"
       const type = !statErr && file.isDirectory() ? dirType : "file"

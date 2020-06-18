@@ -23,7 +23,7 @@ describe("callbacks", () => {
 
   it("should handle an errored callback", done => {
     asyncDone(failure, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })
@@ -41,7 +41,7 @@ describe("callbacks", () => {
   it("should not handle error if something throws inside the callback", done => {
     const d = require("domain").create()
     d.on("error", err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
 

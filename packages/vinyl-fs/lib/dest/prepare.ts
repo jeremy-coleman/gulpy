@@ -1,11 +1,17 @@
 import * as path from "path"
 import * as fs from "fs"
 import Vinyl from "vinyl"
-import through from "through2"
+import * as through from "through2"
 import { isFunction } from "lodash"
+import { resolveOption } from "../resolve-option"
+import { Config } from "./options"
+import type { File } from "vinyl"
 
-function prepareWrite(folderResolver, optResolver) {
-  if (!folderResolver) {
+function prepareWrite(
+  { outFolder }: { outFolder: string | ((file: File) => string) },
+  options: Config
+) {
+  if (!outFolder) {
     throw Error("Invalid output folder")
   }
 
@@ -19,11 +25,11 @@ function prepareWrite(folderResolver, optResolver) {
       file = new Vinyl(file)
     }
 
-    const outFolderPath = folderResolver.resolve("outFolder", file)
+    const outFolderPath = resolveOption(outFolder, file)
     if (!outFolderPath) {
       return cb(new Error("Invalid output folder"))
     }
-    const cwd = path.resolve(optResolver.resolve("cwd", file))
+    const cwd = path.resolve(resolveOption(options.cwd, file))
     const basePath = path.resolve(cwd, outFolderPath)
     const writePath = path.resolve(basePath, file.relative)
 
@@ -32,7 +38,7 @@ function prepareWrite(folderResolver, optResolver) {
     file.base = basePath
     file.path = writePath
     if (!file.isSymbolic()) {
-      const mode = optResolver.resolve("mode", file)
+      const mode = resolveOption(options.mode, file)
       file.stat = file.stat || new fs.Stats()
       file.stat.mode = mode
     }

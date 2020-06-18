@@ -54,14 +54,14 @@ describe("streams", () => {
 
   it("should handle an errored stream", done => {
     asyncDone(failure, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })
 
   it("should handle an errored pipeline", done => {
     asyncDone(pumpifyError, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       expect(err.message).toNotBe("premature close")
       done()
     })

@@ -111,7 +111,7 @@ describe("add", function () {
     file.sourceMap = sourceMap
     sourcemaps.add(file, function (err, data) {
       expect(data).toExist()
-      expect(File.isVinyl(data)).toEqual(true)
+      expect(File.isVinyl(data)).to.be.true
       expect(data.sourceMap).toBe(sourceMap)
       expect(data).toBe(file)
       done(err)
@@ -132,11 +132,11 @@ describe("add", function () {
   it("adds an empty sourceMap if none are found", function (done) {
     sourcemaps.add(makeFile(), function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources[0]).toEqual("helloworld.js")
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources[0]).to.equal("helloworld.js")
       expect(data.sourceMap.sourcesContent[0]).toEqual(sourceContent)
-      expect(data.sourceMap.names).toEqual([])
-      expect(data.sourceMap.mappings).toEqual("")
+      expect(data.sourceMap.names).to.deep.equal([])
+      expect(data.sourceMap.mappings).to.equal("")
       done(err)
     })
   })
@@ -144,9 +144,9 @@ describe("add", function () {
   it("imports an existing inline sourcemap", function (done) {
     sourcemaps.add(makeFileWithInlineSourceMap(), function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources).toEqual(["test1.js", "test2.js"])
-      expect(data.sourceMap.sourcesContent).toEqual([
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources).to.deep.equal(["test1.js", "test2.js"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
         'console.log("line 1.1");\nconsole.log("line 1.2");\n',
         'console.log("line 2.1");\nconsole.log("line 2.2");',
       ])
@@ -159,7 +159,7 @@ describe("add", function () {
 
   it("removes an imported inline sourcemap", function (done) {
     sourcemaps.add(makeFileWithInlineSourceMap(), function (err, data) {
-      expect(/sourceMappingURL/.test(data.contents.toString())).toEqual(false)
+      expect(/sourceMappingURL/.test(data.contents.toString())).to.be.false
       done(err)
     })
   })
@@ -171,10 +171,12 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources).toEqual(["helloworld2.js"])
-      expect(data.sourceMap.sourcesContent).toEqual(["source content from source map"])
-      expect(data.sourceMap.mappings).toEqual("")
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources).to.deep.equal(["helloworld2.js"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        "source content from source map",
+      ])
+      expect(data.sourceMap.mappings).to.equal("")
       done(err)
     })
   })
@@ -185,7 +187,7 @@ describe("add", function () {
       sourceContent + "\n//# sourceMappingURL=helloworld2.js.map"
     )
     sourcemaps.add(file, function (err, data) {
-      expect(/sourceMappingURL/.test(data.contents.toString())).toEqual(false)
+      expect(/sourceMappingURL/.test(data.contents.toString())).to.be.false
       done(err)
     })
   })
@@ -197,10 +199,12 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources).toEqual(["helloworld2.js"])
-      expect(data.sourceMap.sourcesContent).toEqual(["source content from source map"])
-      expect(data.sourceMap.mappings).toEqual("")
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources).to.deep.equal(["helloworld2.js"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        "source content from source map",
+      ])
+      expect(data.sourceMap.mappings).to.equal("")
       done(err)
     })
   })
@@ -211,7 +215,7 @@ describe("add", function () {
       sourceContent + "\n//@ sourceMappingURL=helloworld2.js.map"
     )
     sourcemaps.add(file, function (err, data) {
-      expect(/sourceMappingURL/.test(data.contents.toString())).toEqual(false)
+      expect(/sourceMappingURL/.test(data.contents.toString())).to.be.false
       done(err)
     })
   })
@@ -223,10 +227,12 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources).toEqual(["helloworld2.js"])
-      expect(data.sourceMap.sourcesContent).toEqual(["source content from source map"])
-      expect(data.sourceMap.mappings).toEqual("")
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources).to.deep.equal(["helloworld2.js"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        "source content from source map",
+      ])
+      expect(data.sourceMap.mappings).to.equal("")
       done(err)
     })
   })
@@ -237,7 +243,7 @@ describe("add", function () {
       sourceContent + "\n/*# sourceMappingURL=helloworld2.js.map */"
     )
     sourcemaps.add(file, function (err, data) {
-      expect(/sourceMappingURL/.test(data.contents.toString())).toEqual(false)
+      expect(/sourceMappingURL/.test(data.contents.toString())).to.be.false
       done(err)
     })
   })
@@ -249,10 +255,12 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources).toEqual(["helloworld2.js"])
-      expect(data.sourceMap.sourcesContent).toEqual(["source content from source map"])
-      expect(data.sourceMap.mappings).toEqual("")
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources).to.deep.equal(["helloworld2.js"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        "source content from source map",
+      ])
+      expect(data.sourceMap.mappings).to.equal("")
       done(err)
     })
   })
@@ -263,7 +271,7 @@ describe("add", function () {
       sourceContent + "\n/*@ sourceMappingURL=helloworld2.js.map */"
     )
     sourcemaps.add(file, function (err, data) {
-      expect(/sourceMappingURL/.test(data.contents.toString())).toEqual(false)
+      expect(/sourceMappingURL/.test(data.contents.toString())).to.be.false
       done(err)
     })
   })
@@ -273,10 +281,12 @@ describe("add", function () {
     file.path = file.path.replace("helloworld.js", "helloworld2.js")
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.version).toEqual(3)
-      expect(data.sourceMap.sources).toEqual(["helloworld2.js"])
-      expect(data.sourceMap.sourcesContent).toEqual(["source content from source map"])
-      expect(data.sourceMap.mappings).toEqual("")
+      expect(data.sourceMap.version).to.equal(3)
+      expect(data.sourceMap.sources).to.deep.equal(["helloworld2.js"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        "source content from source map",
+      ])
+      expect(data.sourceMap.mappings).to.equal("")
       done(err)
     })
   })
@@ -288,7 +298,10 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.sourcesContent).toEqual([file.contents.toString(), "test1\n"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        file.contents.toString(),
+        "test1\n",
+      ])
       done(err)
     })
   })
@@ -301,8 +314,11 @@ describe("add", function () {
     sourcemaps.add(file, function (err, data) {
       expect(err).toNotExist()
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.sources).toEqual(["helloworld.js", "missingfile"])
-      expect(data.sourceMap.sourcesContent).toEqual([file.contents.toString(), null])
+      expect(data.sourceMap.sources).to.deep.equal(["helloworld.js", "missingfile"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        file.contents.toString(),
+        null,
+      ])
       done(err)
     })
   })
@@ -312,8 +328,8 @@ describe("add", function () {
     file.base = file.cwd
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.file).toEqual("assets/helloworld.js")
-      expect(data.sourceMap.sources).toEqual(["assets/helloworld.js"])
+      expect(data.sourceMap.file).to.equal("assets/helloworld.js")
+      expect(data.sourceMap.sources).to.deep.equal(["assets/helloworld.js"])
       done(err)
     })
   })
@@ -325,7 +341,7 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.sources).toEqual(["../helloworld.js", "../test1.js"])
+      expect(data.sourceMap.sources).to.deep.equal(["../helloworld.js", "../test1.js"])
       done(err)
     })
   })
@@ -335,7 +351,7 @@ describe("add", function () {
     file.stem = "brandnew"
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.file).toEqual("brandnew.js")
+      expect(data.sourceMap.file).to.equal("brandnew.js")
       done(err)
     })
   })
@@ -345,7 +361,7 @@ describe("add", function () {
     file.stem = "assets\\\\brandnew"
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.file).toEqual("assets/brandnew.js")
+      expect(data.sourceMap.file).to.equal("assets/brandnew.js")
       done(err)
     })
   })
@@ -357,8 +373,11 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.sourceRoot).toEqual("test")
-      expect(data.sourceMap.sourcesContent).toEqual([file.contents.toString(), "test1\n"])
+      expect(data.sourceMap.sourceRoot).to.equal("test")
+      expect(data.sourceMap.sourcesContent).to.deep.equal([
+        file.contents.toString(),
+        "test1\n",
+      ])
       done(err)
     })
   })
@@ -372,7 +391,7 @@ describe("add", function () {
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
       expect(data.sourceMap.sourceRoot).toEqual(path.join(__dirname, "assets"))
-      expect(data.sourceMap.sourcesContent).toEqual(["test1\n", "test2\n"])
+      expect(data.sourceMap.sourcesContent).to.deep.equal(["test1\n", "test2\n"])
       done(err)
     })
   })
@@ -384,8 +403,8 @@ describe("add", function () {
     )
     sourcemaps.add(file, function (err, data) {
       expect(data.sourceMap).toExist()
-      expect(data.sourceMap.sourceRoot).toEqual("http://example.com/")
-      expect(data.sourceMap.sourcesContent).toEqual([null, null])
+      expect(data.sourceMap.sourceRoot).to.equal("http://example.com/")
+      expect(data.sourceMap.sourcesContent).to.deep.equal([null, null])
       done(err)
     })
   })

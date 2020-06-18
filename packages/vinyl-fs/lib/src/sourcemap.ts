@@ -1,9 +1,11 @@
-import through from "through2"
+import * as through from "through2"
 import sourcemap from "@local/vinyl-sourcemap"
+import { resolveOption } from "../resolve-option"
+import { Config } from "./options"
 
-function sourcemapStream(optResolver) {
+function sourcemapStream(options: Config) {
   function addSourcemap(file, enc, callback) {
-    const srcMap = optResolver.resolve("sourcemaps", file)
+    const srcMap = resolveOption(options.sourcemaps, file)
 
     if (!srcMap) {
       return callback(null, file)

@@ -1,4 +1,4 @@
-function readDir(file, optResolver, onRead) {
+function readDir(onRead: () => void) {
   // Do nothing for now
   onRead()
 }

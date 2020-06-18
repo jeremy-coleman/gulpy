@@ -1,33 +1,25 @@
 import { DEFAULT_ENCODING } from "../constants"
 
-const config = {
-  buffer: {
-    type: "boolean",
-    default: true,
-  },
-  read: {
-    type: "boolean",
-    default: true,
-  },
-  since: {
-    type: "date",
-  },
-  removeBOM: {
-    type: "boolean",
-    default: true,
-  },
-  encoding: {
-    type: ["string", "boolean"],
-    default: DEFAULT_ENCODING,
-  },
-  sourcemaps: {
-    type: "boolean",
-    default: false,
-  },
-  resolveSymlinks: {
-    type: "boolean",
-    default: true,
-  },
+interface PartialConfig {
+  buffer?: boolean
+  read?: boolean
+  since: Date
+  removeBOM?: boolean
+  encoding?: string | boolean
+  sourcemaps?: boolean
+  resolveSymlinks?: boolean
 }
 
-export default config
+export type Config = Required<PartialConfig>
+
+export function resolve(config: PartialConfig): Config {
+  return {
+    buffer: true,
+    read: true,
+    removeBOM: true,
+    encoding: DEFAULT_ENCODING,
+    sourcemaps: false,
+    resolveSymlinks: true,
+    ...config,
+  }
+}

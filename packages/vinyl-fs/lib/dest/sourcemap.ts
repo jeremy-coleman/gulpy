@@ -1,12 +1,12 @@
-import through from "through2"
+import * as through from "through2"
 import sourcemap from "@local/vinyl-sourcemap"
 import { isString } from "lodash"
+import { Config } from "./options"
+import { resolveOption } from "../resolve-option"
 
-function sourcemapStream(optResolver) {
+export function sourcemapStream(options: Config) {
   function saveSourcemap(file, enc, callback) {
-    const self = this
-
-    const srcMap = optResolver.resolve("sourcemaps", file)
+    const srcMap = resolveOption(options.sourcemaps, file)
 
     if (!srcMap) {
       return callback(null, file)
@@ -14,20 +14,19 @@ function sourcemapStream(optResolver) {
 
     const srcMapLocation = isString(srcMap) ? srcMap : undefined
 
-    sourcemap.write(file, srcMapLocation, onWrite)
-
-    function onWrite(sourcemapErr, updatedFile, sourcemapFile) {
+    const onWrite = (sourcemapErr, updatedFile, sourcemapFile) => {
       if (sourcemapErr) {
         return callback(sourcemapErr)
       }
 
-      self.push(updatedFile)
+      this.push(updatedFile)
       if (sourcemapFile) {
-        self.push(sourcemapFile)
+        this.push(sourcemapFile)
       }
 
       callback()
     }
+    sourcemap.write(file, srcMapLocation, onWrite)
   }
 
   return through.obj(saveSourcemap)

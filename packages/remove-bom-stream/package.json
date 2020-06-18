@@ -10,14 +10,13 @@
   "license": "MIT",
   "main": "index.ts",
   "scripts": {
-    "lint": "eslint index.js test/ && jscs index.js test/",
-    "pretest": "npm run lint",
-    "test": "mocha -r ts-node/register \"test/**/*.ts\"",
-    "cover": "istanbul cover _mocha",
-    "coveralls": "npm run cover && istanbul-coveralls"
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
     "@local/remove-bom-buffer": "^3.0.0",
     "through2": "^3.0.1"
+  },
+  "devDependencies": {
+    "stream-chunker": "^1.2.8"
   }
 }

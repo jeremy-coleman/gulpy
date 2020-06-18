@@ -10,7 +10,7 @@
     "coverage": "istanbul cover _mocha"
   },
   "dependencies": {
-    "through2-filter": "^3.0.0"
+    "@local/through2-filter": "^3.0.0"
   },
   "main": "index.ts"
 }

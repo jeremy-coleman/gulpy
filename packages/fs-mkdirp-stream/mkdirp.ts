@@ -4,7 +4,7 @@ import { isFunction, isString } from "lodash"
 
 const MASK_MODE = parseInt("7777", 8)
 
-function mkdirp(dirpath, mode, callback) {
+export function mkdirp(dirpath, mode, callback) {
   if (isFunction(mode)) {
     callback = mode
     mode = undefined

@@ -1,21 +1,26 @@
 import * as path from "path"
 import isNegated from "@local/is-negated-glob"
 import { isAbsolute } from "path"
+import { last } from "lodash"
 
-export default (glob, options) => {
-  // default options
-  const opts = options || {}
+interface Options {
+  cwd?: string
+  root?: string
+}
 
+export default toAbsoluteGlob
+
+export function toAbsoluteGlob(glob: string, opts?: Options): string {
   // ensure cwd is absolute
-  let cwd = path.resolve(opts.cwd ? opts.cwd : process.cwd())
-  cwd = unixify(cwd)
+  let cwd = path.resolve(opts?.cwd ?? process.cwd())
+  cwd = unix(cwd)
 
-  let rootDir = opts.root
+  let rootDir = opts?.root
   // if `options.root` is defined, ensure it's absolute
   if (rootDir) {
-    rootDir = unixify(rootDir)
+    rootDir = unix(rootDir)
     if (process.platform === "win32" || !isAbsolute(rootDir)) {
-      rootDir = unixify(path.resolve(rootDir))
+      rootDir = unix(path.resolve(rootDir))
     }
   }
 
@@ -52,15 +57,15 @@ export default (glob, options) => {
   return ing.negated ? `!${glob}` : glob
 }
 
-function unixify(filepath) {
+function unix(filepath: string) {
   return filepath.replace(/\\/g, "/")
 }
 
 function join(dir: string, glob: string) {
-  if (dir.charAt(dir.length - 1) === "/") {
+  if (last(dir) === "/") {
     dir = dir.slice(0, -1)
   }
-  if (glob.charAt(0) === "/") {
+  if (glob[0] === "/") {
     glob = glob.slice(1)
   }
   if (!glob) return dir

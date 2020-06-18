@@ -1,5 +1,5 @@
 import { Transform } from "stream"
-import mkdirp from "./mkdirp"
+import { mkdirp } from "./mkdirp"
 import { isString } from "lodash"
 
 function toFunction(dirpath) {

@@ -18,7 +18,7 @@ function failure() {
 describe("observables", () => {
   it("should handle a finished observable", done => {
     asyncDone(success, (err, result) => {
-      expect(result).toEqual(undefined)
+      expect(result).to.be.undefined
       done(err)
     })
   })
@@ -32,7 +32,7 @@ describe("observables", () => {
 
   it("should handle an errored observable", done => {
     asyncDone(failure, err => {
-      expect(err).toBeAn(Error)
+      expect(err).to.be.an(Error)
       done()
     })
   })

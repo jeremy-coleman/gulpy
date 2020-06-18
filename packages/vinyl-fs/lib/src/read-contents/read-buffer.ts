@@ -2,9 +2,11 @@ import * as fs from "fs"
 import removeBomBuffer from "@local/remove-bom-buffer"
 import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
+import { Config } from "../options"
+import { resolveOption } from "../../resolve-option"
 
-function bufferFile(file, optResolver, onRead) {
-  const encoding = optResolver.resolve("encoding", file)
+function bufferFile(file, options: Config, onRead) {
+  const encoding = resolveOption(options.encoding, file)
   const codec = getCodec(encoding)
   if (encoding && !codec) {
     return onRead(new Error(`Unsupported encoding: ${encoding}`))
@@ -18,7 +20,7 @@ function bufferFile(file, optResolver, onRead) {
     }
 
     if (encoding) {
-      let removeBOM = codec.bomAware && optResolver.resolve("removeBOM", file)
+      let removeBOM = codec.bomAware && resolveOption(options.removeBOM, file)
 
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = codec.decode(contents)

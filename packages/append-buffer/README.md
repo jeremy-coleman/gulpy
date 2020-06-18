@@ -21,7 +21,7 @@ $ yarn add append-buffer
 ## Usage
 
 ```js
-var appendBuffer = require("append-buffer")
+import appendBuffer from "append-buffer"
 ```
 
 ## API
