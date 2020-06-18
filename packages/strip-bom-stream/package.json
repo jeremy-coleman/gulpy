@@ -1,0 +1,23 @@
+{
+  "name": "@local/strip-bom-stream",
+  "version": "4.0.0",
+  "description": "Strip UTF-8 byte order mark (BOM) from a stream",
+  "license": "MIT",
+  "repository": "sindresorhus/strip-bom-stream",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "https://sindresorhus.com"
+  },
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "dependencies": {
+    "@local/first-chunk-stream": "^4.0.0",
+    "strip-bom-buf": "^2.0.0"
+  },
+  "devDependencies": {
+    "get-stream": "^5.1.0"
+  },
+  "main": "index.ts"
+}

@@ -1,6 +1,6 @@
 import * as fs from "fs"
-import removeBomStream from "remove-bom-stream"
-import lazystream from "lazystream"
+import removeBomStream from "@local/remove-bom-stream"
+import * as lazystream from "@local/lazystream"
 import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
 

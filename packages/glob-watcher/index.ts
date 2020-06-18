@@ -1,7 +1,7 @@
 import * as chokidar from "chokidar"
 import { asyncDone } from "@local/async-done"
 import isNegatedGlob from "@local/is-negated-glob"
-import anymatch from "anymatch"
+import anymatch from "@local/anymatch"
 import { debounce, defaults, isFunction } from "lodash"
 
 const defaultOpts = {

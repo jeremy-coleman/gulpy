@@ -1,4 +1,4 @@
-import normalize from "value-or-function"
+import normalize from "@local/value-or-function"
 
 const slice = Array.prototype.slice
 

@@ -80,9 +80,11 @@ function getDecoder(codec) {
   return new codec.decoder(null, codec)
 }
 
-const cache = {}
+const cache: {
+  [key: string]: Codec
+} = {}
 
-function getCodec(encoding) {
+export function getCodec(encoding) {
   let codec = cache[encoding]
   if (!!codec || !encoding || cache.hasOwnProperty(encoding)) {
     return codec

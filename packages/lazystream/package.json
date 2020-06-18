@@ -1,0 +1,26 @@
+{
+  "name": "@local/lazystream",
+  "version": "1.0.0",
+  "description": "Open Node Streams on demand.",
+  "homepage": "https://github.com/jpommerening/node-lazystream",
+  "author": {
+    "name": "Jonas Pommerening",
+    "email": "jonas.pommerening@gmail.com",
+    "url": "https://npmjs.org/~jpommerening"
+  },
+  "contributors": [
+    "Mario Casciaro <mariocasciaro@gmail.com>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jpommerening/node-lazystream.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jpommerening/node-lazystream/issues"
+  },
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  }
+}

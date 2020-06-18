@@ -1,0 +1,16 @@
+{
+  "name": "@local/first-chunk-stream",
+  "version": "4.0.0",
+  "description": "Buffer and transform the n first bytes of a stream",
+  "license": "MIT",
+  "repository": "sindresorhus/first-chunk-stream",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "https://sindresorhus.com"
+  },
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "main": "index.ts"
+}

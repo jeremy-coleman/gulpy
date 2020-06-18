@@ -3,7 +3,6 @@ import * as path from "path"
 import { expect } from "chai"
 import rimraf from "rimraf"
 import through from "through2"
-import normalizePath from "normalize-path"
 import watch from "../"
 
 // Default delay on debounce
@@ -16,8 +15,8 @@ describe("glob-watcher", () => {
   const outFile1 = path.join(outDir, "changed.js")
   const outFile2 = path.join(outDir, "added.js")
   const globPattern = "**/*.js"
-  const outGlob = normalizePath(path.join(outDir, globPattern))
-  const singleAdd = normalizePath(path.join(outDir, "changed.js"))
+  const outGlob = path.normalize(path.join(outDir, globPattern))
+  const singleAdd = path.normalize(path.join(outDir, "changed.js"))
   const ignoreGlob = `!${singleAdd}`
 
   function changeFile() {

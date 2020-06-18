@@ -13,6 +13,6 @@
     "test": "mocha -r ts-node/register \"test/**/*.ts\""
   },
   "dependencies": {
-    "value-or-function": "^3.0.0"
+    "@local/value-or-function": "^3.0.0"
   }
 }

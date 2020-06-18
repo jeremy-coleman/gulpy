@@ -1,0 +1,12 @@
+{
+  "name": "@local/is-utf8",
+  "version": "0.2.1",
+  "description": "Detect if a buffer is utf8 encoded.",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "repository": "https://github.com/wayfind/is-utf8.git",
+  "author": "wayfind",
+  "license": "MIT"
+}

@@ -1,5 +1,5 @@
 import * as fs from "fs"
-import removeBomBuffer from "remove-bom-buffer"
+import removeBomBuffer from "@local/remove-bom-buffer"
 import getCodec from "../../codecs"
 import { DEFAULT_ENCODING } from "../../constants"
 

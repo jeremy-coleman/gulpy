@@ -1,0 +1,24 @@
+{
+  "name": "@local/remove-bom-buffer",
+  "description": "Remove a byte order mark (BOM) from a buffer.",
+  "version": "3.0.0",
+  "homepage": "https://github.com/jonschlinkert/remove-bom-buffer",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Blaine Bublitz (https://twitter.com/BlaineBublitz)",
+    "Erik Kemperman (https://github.com/erikkemperman)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/remove-bom-buffer",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/remove-bom-buffer/issues"
+  },
+  "license": "MIT",
+  "main": "index.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register \"test/**/*.ts\""
+  },
+  "dependencies": {
+    "@local/is-utf8": "^0.2.1"
+  }
+}

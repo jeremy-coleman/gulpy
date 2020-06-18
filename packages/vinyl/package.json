@@ -23,6 +23,7 @@
     "@types/from2": "^2.3.0",
     "concat-stream": "^2.0.0",
     "from2": "^2.3.0",
+    "source-map": "^0.7.3",
     "@local/pump": "^3.0.0",
     "mocha": "^8.0.1"
   },

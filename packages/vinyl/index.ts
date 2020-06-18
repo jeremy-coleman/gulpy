@@ -9,6 +9,7 @@ import { removeTrailingSeparator } from "@local/shared"
 import { isStream } from "./lib/is-stream"
 import { normalize } from "./lib/normalize"
 import { inspectStream } from "./lib/inspect-stream"
+import type { RawSourceMap } from "source-map"
 
 const builtInFields = [
   "_contents",
@@ -141,6 +142,8 @@ export class File {
 
   stat?: fs.Stats
   custom?: any
+
+  sourceMap?: RawSourceMap
 
   _isVinyl = true
   private _symlink: null

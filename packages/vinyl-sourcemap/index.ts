@@ -1,9 +1,10 @@
-import File from "vinyl"
-import helpers from "./lib/helpers"
+import { File } from "vinyl"
+import * as helpers from "./lib/helpers"
+import type { RawSourceMap } from "source-map"
 
 const PLUGIN_NAME = "vinyl-sourcemap"
 
-function add(file, callback) {
+function add(file: File, callback) {
   // Bail early an error if the file argument is not a Vinyl file
   if (!File.isVinyl(file)) {
     return callback(new Error(`${PLUGIN_NAME}-add: Not a vinyl file`))

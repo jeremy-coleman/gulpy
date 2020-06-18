@@ -1,7 +1,6 @@
-require("mocha")
-import path from "path"
+import * as path from "path"
 import assert from "assert"
-import resolve from "./"
+import resolve from "../"
 const sep = path.sep
 let fixture
 let actual

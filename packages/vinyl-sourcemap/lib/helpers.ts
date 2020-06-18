@@ -3,9 +3,9 @@ import * as fs from "fs"
 import * as nal from "now-and-later"
 import { File } from "vinyl"
 import * as convert from "@local/convert-source-map"
-import removeBOM from "remove-bom-buffer"
-import appendBuffer from "append-buffer"
-import normalizePath from "normalize-path"
+import { removeBOM } from "@local/remove-bom-buffer"
+import appendBuffer from "@local/append-buffer"
+import type { RawSourceMap } from "source-map"
 
 const urlRegex = /^(https?|webpack(-[^:]+)?):\/\//
 
@@ -98,7 +98,7 @@ function fixImportedSourceMap(file, state, callback) {
     const basePath = path.resolve(file.base, sourceRoot)
     const absPath = path.resolve(state.path, sourceRoot, sourcePath)
     const relPath = path.relative(basePath, absPath)
-    const unixRelPath = normalizePath(relPath)
+    const unixRelPath = path.normalize(relPath)
 
     state.map.sources[idx] = unixRelPath
 
@@ -128,18 +128,19 @@ function mapsLoaded(file, state, callback) {
       version: 3,
       names: [],
       mappings: "",
-      sources: [normalizePath(file.relative)],
+      sources: [path.normalize(file.relative)],
       sourcesContent: [state.content],
-    }
+      file: undefined!,
+    } as RawSourceMap
   }
 
-  state.map.file = normalizePath(file.relative)
+  state.map.file = path.normalize(file.relative)
   file.sourceMap = state.map
 
   callback()
 }
 
-function addSourceMaps(file, state, callback) {
+export function addSourceMaps(file, state, callback) {
   const tasks = [loadSourceMap, fixImportedSourceMap, mapsLoaded]
 
   function apply(fn, key, cb) {
@@ -196,11 +197,11 @@ function getCommentOptions(extname) {
   return opts
 }
 
-function writeSourceMaps(file, destPath, callback) {
+export function writeSourceMaps(file: File, destPath, callback) {
   let sourceMapFile
   const commentOpts = getCommentOptions(file.extname)
 
-  let comment
+  let comment: string
   if (destPath == null) {
     // Encode source map into comment
     comment = convert.fromObject(file.sourceMap).toComment(commentOpts)
@@ -218,7 +219,7 @@ function writeSourceMaps(file, destPath, callback) {
 
     let sourcemapLocation = path.relative(file.dirname, sourceMapPath)
 
-    sourcemapLocation = normalizePath(sourcemapLocation)
+    sourcemapLocation = path.normalize(sourcemapLocation)
 
     comment = convert.generateMapFileComment(sourcemapLocation, commentOpts)
   }
@@ -227,9 +228,4 @@ function writeSourceMaps(file, destPath, callback) {
   file.contents = appendBuffer(file.contents, comment)
 
   callback(null, file, sourceMapFile)
-}
-
-export default {
-  addSourceMaps,
-  writeSourceMaps,
 }
