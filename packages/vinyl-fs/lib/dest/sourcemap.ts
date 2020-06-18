@@ -1,5 +1,5 @@
 import through from "through2"
-import sourcemap from "vinyl-sourcemap"
+import sourcemap from "@local/vinyl-sourcemap"
 import { isString } from "lodash"
 
 function sourcemapStream(optResolver) {

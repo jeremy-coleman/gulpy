@@ -13,12 +13,13 @@ var util = require("util")
 var glob = require("glob")
 var path = require("path")
 var normalize$1 = _interopDefault(require("value-or-function"))
-var sourcemap = _interopDefault(require("vinyl-sourcemap"))
 var fs = require("fs")
+var removeBOM = _interopDefault(require("remove-bom-buffer"))
+var appendBuffer = _interopDefault(require("append-buffer"))
+var normalizePath = _interopDefault(require("normalize-path"))
 var removeBomStream = _interopDefault(require("remove-bom-stream"))
 var lazystream = _interopDefault(require("lazystream"))
 var iconv = _interopDefault(require("iconv-lite"))
-var removeBomBuffer = _interopDefault(require("remove-bom-buffer"))
 var fs$1 = require("fs-extra")
 var os = require("os")
 var chokidar = require("chokidar")
@@ -2112,7 +2113,6 @@ const builtInFields = [
   "_cwd",
   "cwd",
 ]
-
 class File {
   constructor(file = {}) {
     var _file$history$slice, _file$history
@@ -2429,6 +2429,353 @@ function wrapVinyl() {
   return main.obj(wrapFile)
 }
 
+const mapFileCommentRegex = /(?:\/\/[@#][ \t]+sourceMappingURL=([^\s'"`]+?)[ \t]*$)|(?:\/\*[@#][ \t]+sourceMappingURL=([^\*]+?)[ \t]*(?:\*\/){1}[ \t]*$)/gm
+
+function decodeBase64(base64) {
+  return Buffer.from(base64, "base64").toString()
+}
+
+function stripComment(sm) {
+  return sm.split(",").pop()
+}
+
+function readFromFileMap(sm, dir) {
+  const r = exports.mapFileCommentRegex.exec(sm)
+  const filename = r[1] || r[2]
+  const filepath = path.resolve(dir, filename)
+
+  try {
+    return fs.readFileSync(filepath, "utf8")
+  } catch (e) {
+    throw new Error(
+      `An error occurred while trying to read the map file at ${filepath}\n${e}`
+    )
+  }
+}
+
+class Converter {
+  constructor(sm, opts = {}) {
+    if (opts.isFileComment) sm = readFromFileMap(sm, opts.commentFileDir)
+    if (opts.hasComment) sm = stripComment(sm)
+    if (opts.isEncoded) sm = decodeBase64(sm)
+    if (opts.isJSON || opts.isEncoded) sm = JSON.parse(sm)
+    this.sourcemap = sm
+  }
+
+  toJSON(space) {
+    return JSON.stringify(this.sourcemap, null, space)
+  }
+
+  toBase64() {
+    const json = this.toJSON()
+    return Buffer.from(json, "utf8").toString("base64")
+  }
+
+  toComment(options) {
+    const base64 = this.toBase64()
+    const data = `sourceMappingURL=data:application/json;charset=utf-8;base64,${base64}`
+    return options && options.multiline ? `/*# ${data} */` : `//# ${data}`
+  }
+
+  toObject() {
+    return JSON.parse(this.toJSON())
+  }
+
+  addProperty(key, value) {
+    if (this.sourcemap.hasOwnProperty(key))
+      throw new Error(
+        `property "${key}" already exists on the sourcemap, use set property instead`
+      )
+    return this.setProperty(key, value)
+  }
+
+  setProperty(key, value) {
+    this.sourcemap[key] = value
+    return this
+  }
+
+  getProperty(key) {
+    return this.sourcemap[key]
+  }
+}
+
+function fromObject(obj) {
+  return new Converter(obj)
+}
+function fromSource(content) {
+  const m = content.match(exports.commentRegex)
+  return m ? exports.fromComment(m.pop()) : null
+}
+function removeComments(src) {
+  return src.replace(exports.commentRegex, "")
+}
+function removeMapFileComments(src) {
+  return src.replace(exports.mapFileCommentRegex, "")
+}
+function generateMapFileComment(file, options) {
+  const data = `sourceMappingURL=${file}`
+  return options && options.multiline ? `/*# ${data} */` : `//# ${data}`
+}
+
+const urlRegex = /^(https?|webpack(-[^:]+)?):\/\//
+
+function isRemoteSource(source) {
+  return source.match(urlRegex)
+}
+
+function parse(data) {
+  try {
+    return JSON.parse(removeBOM(data))
+  } catch (err) {}
+}
+
+function loadSourceMap(file, state, callback) {
+  state.map = fromSource(state.content)
+
+  if (state.map) {
+    state.map = state.map.toObject()
+    state.path = file.dirname
+    state.content = removeComments(state.content)
+    file.contents = new Buffer(state.content, "utf8")
+    return callback()
+  }
+
+  const mapComment = mapFileCommentRegex.exec(state.content)
+  let mapFile
+
+  if (mapComment) {
+    mapFile = path.resolve(file.dirname, mapComment[1] || mapComment[2])
+    state.content = removeMapFileComments(state.content)
+    file.contents = new Buffer(state.content, "utf8")
+  } else {
+    mapFile = `${file.path}.map`
+  }
+
+  state.path = path.dirname(mapFile)
+  fs.readFile(mapFile, onRead)
+
+  function onRead(err, data) {
+    if (err) {
+      return callback()
+    }
+
+    state.map = parse(data)
+    callback()
+  }
+}
+
+function fixImportedSourceMap(file, state, callback) {
+  if (!state.map) {
+    return callback()
+  }
+
+  state.map.sourcesContent = state.map.sourcesContent || []
+  map(state.map.sources, normalizeSourcesAndContent, callback)
+
+  function assignSourcesContent(sourceContent, idx) {
+    state.map.sourcesContent[idx] = sourceContent
+  }
+
+  function normalizeSourcesAndContent(sourcePath, idx, cb) {
+    const sourceRoot = state.map.sourceRoot || ""
+    const sourceContent = state.map.sourcesContent[idx] || null
+
+    if (isRemoteSource(sourcePath)) {
+      assignSourcesContent(sourceContent, idx)
+      return cb()
+    }
+
+    if (state.map.sourcesContent[idx]) {
+      return cb()
+    }
+
+    if (sourceRoot && isRemoteSource(sourceRoot)) {
+      assignSourcesContent(sourceContent, idx)
+      return cb()
+    }
+
+    const basePath = path.resolve(file.base, sourceRoot)
+    const absPath = path.resolve(state.path, sourceRoot, sourcePath)
+    const relPath = path.relative(basePath, absPath)
+    const unixRelPath = normalizePath(relPath)
+    state.map.sources[idx] = unixRelPath
+
+    if (absPath !== file.path) {
+      return fs.readFile(absPath, onRead)
+    }
+
+    assignSourcesContent(state.content, idx)
+    cb()
+
+    function onRead(err, data) {
+      if (err) {
+        assignSourcesContent(null, idx)
+        return cb()
+      }
+
+      assignSourcesContent(removeBOM(data).toString("utf8"), idx)
+      cb()
+    }
+  }
+}
+
+function mapsLoaded(file, state, callback) {
+  if (!state.map) {
+    state.map = {
+      version: 3,
+      names: [],
+      mappings: "",
+      sources: [normalizePath(file.relative)],
+      sourcesContent: [state.content],
+    }
+  }
+
+  state.map.file = normalizePath(file.relative)
+  file.sourceMap = state.map
+  callback()
+}
+
+function addSourceMaps(file, state, callback) {
+  const tasks = [loadSourceMap, fixImportedSourceMap, mapsLoaded]
+
+  function apply(fn, key, cb) {
+    fn(file, state, cb)
+  }
+
+  mapSeries(tasks, apply, done)
+
+  function done() {
+    callback(null, file)
+  }
+}
+
+function createSourceMapFile(opts) {
+  return new File({
+    cwd: opts.cwd,
+    base: opts.base,
+    path: opts.path,
+    contents: new Buffer(JSON.stringify(opts.content)),
+    stat: {
+      isFile() {
+        return true
+      },
+
+      isDirectory() {
+        return false
+      },
+
+      isBlockDevice() {
+        return false
+      },
+
+      isCharacterDevice() {
+        return false
+      },
+
+      isSymbolicLink() {
+        return false
+      },
+
+      isFIFO() {
+        return false
+      },
+
+      isSocket() {
+        return false
+      },
+    },
+  })
+}
+
+const needsMultiline = [".css"]
+
+function getCommentOptions(extname) {
+  const opts = {
+    multiline: needsMultiline.includes(extname),
+  }
+  return opts
+}
+
+function writeSourceMaps(file, destPath, callback) {
+  let sourceMapFile
+  const commentOpts = getCommentOptions(file.extname)
+  let comment
+
+  if (destPath == null) {
+    comment = fromObject(file.sourceMap).toComment(commentOpts)
+  } else {
+    const mapFile = `${path.join(destPath, file.relative)}.map`
+    const sourceMapPath = path.join(file.base, mapFile)
+    sourceMapFile = createSourceMapFile({
+      cwd: file.cwd,
+      base: file.base,
+      path: sourceMapPath,
+      content: file.sourceMap,
+    })
+    let sourcemapLocation = path.relative(file.dirname, sourceMapPath)
+    sourcemapLocation = normalizePath(sourcemapLocation)
+    comment = generateMapFileComment(sourcemapLocation, commentOpts)
+  }
+
+  file.contents = appendBuffer(file.contents, comment)
+  callback(null, file, sourceMapFile)
+}
+
+var helpers = {
+  addSourceMaps,
+  writeSourceMaps,
+}
+
+const PLUGIN_NAME = "vinyl-sourcemap"
+
+function add(file, callback) {
+  if (!File.isVinyl(file)) {
+    return callback(new Error(`${PLUGIN_NAME}-add: Not a vinyl file`))
+  }
+
+  if (file.isStream()) {
+    return callback(new Error(`${PLUGIN_NAME}-add: Streaming not supported`))
+  }
+
+  if (file.isNull() || file.sourceMap) {
+    return callback(null, file)
+  }
+
+  const state = {
+    path: "",
+    map: null,
+    content: file.contents.toString(),
+    preExistingComment: null,
+  }
+  helpers.addSourceMaps(file, state, callback)
+}
+
+function write(file, destPath, callback) {
+  if (typeof destPath === "function") {
+    callback = destPath
+    destPath = undefined
+  }
+
+  if (!File.isVinyl(file)) {
+    return callback(new Error(`${PLUGIN_NAME}-write: Not a vinyl file`))
+  }
+
+  if (file.isStream()) {
+    return callback(new Error(`${PLUGIN_NAME}-write: Streaming not supported`))
+  }
+
+  if (file.isNull() || !file.sourceMap) {
+    return callback(null, file)
+  }
+
+  helpers.writeSourceMaps(file, destPath, callback)
+}
+
+var sourcemap = {
+  add,
+  write,
+}
+
 function sourcemapStream(optResolver) {
   function addSourcemap(file, enc, callback) {
     const srcMap = optResolver.resolve("sourcemaps", file)
@@ -2608,16 +2955,16 @@ function bufferFile(file, optResolver, onRead) {
     }
 
     if (encoding) {
-      let removeBOM = codec.bomAware && optResolver.resolve("removeBOM", file)
+      let removeBOM$1 = codec.bomAware && optResolver.resolve("removeBOM", file)
 
       if (codec.enc !== DEFAULT_ENCODING) {
         contents = codec.decode(contents)
-        removeBOM = removeBOM && contents[0] === "\ufeff"
+        removeBOM$1 = removeBOM$1 && contents[0] === "\ufeff"
         contents = getCodec(DEFAULT_ENCODING).encode(contents)
       }
 
-      if (removeBOM) {
-        contents = removeBomBuffer(contents)
+      if (removeBOM$1) {
+        contents = removeBOM(contents)
       }
     }
 

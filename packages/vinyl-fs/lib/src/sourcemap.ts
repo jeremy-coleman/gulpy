@@ -1,5 +1,5 @@
 import through from "through2"
-import sourcemap from "vinyl-sourcemap"
+import sourcemap from "@local/vinyl-sourcemap"
 
 function sourcemapStream(optResolver) {
   function addSourcemap(file, enc, callback) {

@@ -30,7 +30,7 @@
     "through2": "^3.0.1",
     "@local/to-through": "^2.0.0",
     "vinyl": "^2.2.0",
-    "vinyl-sourcemap": "^1.1.0"
+    "@local/vinyl-sourcemap": "^1.1.0"
   },
   "devDependencies": {
     "fs-extra": "9.0.1",

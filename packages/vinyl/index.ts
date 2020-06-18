@@ -131,7 +131,7 @@ type CloneOptions =
 
 type FileSansContents = Omit<File, "contents" | "clone">
 
-class File {
+export class File {
   /**
    * Array of `file.path` values the Vinyl object has had, from `file.history[0]` (original)
    * through `file.history[file.history.length - 1]` (current). `file.history` and its elements
