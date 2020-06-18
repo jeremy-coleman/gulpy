@@ -23,6 +23,7 @@
 <em>No dependencies and full support for standard and extended Bash glob features, including braces, extglobs, POSIX brackets, and regular expressions.</em>
 </p>
 
+Last upstream commit: [aed790f on 21 Mar 2020](https://github.com/micromatch/picomatch/commit/aed790f037736f5c760f7b120935714d21503fe9).
 <br>
 <br>
 
